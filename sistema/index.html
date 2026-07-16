@@ -463,6 +463,7 @@ async function vForm(tipo, registro) {
   EDIT_ID = registro ? registro.id : null;
   let campos = "";
   cfg.secciones.forEach(sec => {
+    if (sec.texto) { campos += `<div class="sec-t">${esc(sec.t)}</div><div class="w12" style="grid-column:1/-1;font-size:12px;line-height:1.5;color:#475569;white-space:pre-line;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${esc(sec.texto)}</div>`; return; }
     if (sec.rep) { campos += `<div class="sec-t">${esc(sec.t)}</div><div class="fld w4"><label>¿Tiene ${esc(sec.rep.plural)}?</label><select data-reptoggle="${sec.rep.key}"><option value="">Seleccione</option><option value="si">Sí</option><option value="no">No</option></select></div><div class="w12" data-rep="${sec.rep.key}" style="display:none;grid-column:1/-1"></div>`; return; }
     campos += `<div class="sec-t">${esc(sec.t)}</div>`;
     sec.campos.forEach(c => {
@@ -570,6 +571,7 @@ async function vVer(id) {
   const puedeEditar = (r.owner === USER.id || esAdmin()) && r.tipo !== "acta_legacy";
   let cuerpo = "";
   if (cfg) { cfg.secciones.forEach(sec => {
+    if (sec.texto) { cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div><div class="fila"><span style="font-size:12px;line-height:1.5;color:#475569;white-space:pre-line">${esc(sec.texto)}</span></div>`; return; }
     if (sec.rep) { const arr = (r.datos || {})[sec.rep.key]; if (Array.isArray(arr) && arr.length) { cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div>` + arr.map((it, i) => sec.rep.campos.map(c => { const v = it[c.n]; return v ? `<div class="fila"><span class="k">${esc(sec.rep.singular)} ${i + 1} · ${esc(c.l)}</span><span>${esc(v)}</span></div>` : ""; }).join("")).join(""); } return; }
     const filas = sec.campos.map(c => { const v = (r.datos || {})[c.n]; return v ? `<div class="fila"><span class="k">${esc(c.l)}</span><span>${esc(v)}</span></div>` : ""; }).join(""); if (filas) cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div>${filas}`;
   }); }
