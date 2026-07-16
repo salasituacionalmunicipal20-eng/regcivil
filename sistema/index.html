@@ -205,14 +205,19 @@ $("menuBtn").onclick = () => $("side").classList.toggle("open");
 const esAdmin = () => PERFIL && PERFIL.rol === "admin";
 function construirNav() {
   const items = [
-    ["inicio", "🏠 Inicio", "General"],
-    ["nuevo", "➕ Nuevo trámite", "General"],
-    ["registros", "📋 Trámites y actas", "General"],
+    ["inicio", "🏠 Inicio", ""],
+    ["form/nacimiento", "👶 Nacimiento", "Registro"],
+    ["form/matrimonio", "💍 Matrimonio", "Registro"],
+    ["form/defuncion", "🕊️ Defunción", "Registro"],
+    ["documentos", "📄 Documentos", "Registro"],
+    ["form/copia_acta", "🖨️ Entrega de Copias", "Registro"],
+    ["form/permiso", "⚰️ Permisos", "Registro"],
+    ["registros", "📋 Trámites y actas", "Consultas"],
     ["actividad", "🕒 Actividad", "Control"],
   ];
   if (esAdmin()) items.push(["usuarios", "👥 Usuarios", "Control"]);
-  let html = "", grp = "";
-  items.forEach(([id, lbl, g]) => { if (g !== grp) { html += `<div class="grp">${g}</div>`; grp = g; } html += `<a data-v="${id}" href="#${id}">${lbl}</a>`; });
+  let html = "", grp = null;
+  items.forEach(([id, lbl, g]) => { if (g !== grp) { if (g) html += `<div class="grp">${g}</div>`; grp = g; } html += `<a data-v="${id}" href="#${id}">${lbl}</a>`; });
   $("side").innerHTML = html;
   $("side").querySelectorAll("a").forEach(a => a.onclick = () => { $("side").classList.remove("open"); });
 }
@@ -224,13 +229,14 @@ function iniciarApp() {
   window.addEventListener("hashchange", router);
   router();
 }
-function setActive(v) { $("side").querySelectorAll("a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); }
+function setActive(hash) { $("side").querySelectorAll("a").forEach(a => a.classList.toggle("on", a.dataset.v === hash)); }
 function router() {
   const h = (location.hash || "#inicio").slice(1);
   const [v, arg] = h.split("/");
-  setActive(v);
+  setActive(h);
   if (v === "inicio") vInicio();
   else if (v === "nuevo") vNuevo();
+  else if (v === "documentos") vDocumentos();
   else if (v === "registros") vRegistros();
   else if (v === "legacy") vLegacy();
   else if (v === "actividad") vActividad();
@@ -264,6 +270,12 @@ function gridTramites() {
 }
 function vNuevo() {
   $("view").innerHTML = `<h1 class="t">Nuevo trámite</h1><div class="sub">Elige el trámite a registrar.</div><div class="card"><div class="grid-tram">${gridTramites()}</div></div>`;
+  $("view").querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
+}
+function vDocumentos() {
+  const docs = ["union_estable", "disolucion", "naturalizacion", "fe_vida", "residencia", "solteria", "buena_conducta", "perdida", "expensa", "manutencion", "viudez"];
+  const cards = docs.filter(k => TRAMITES[k]).map(k => { const v = TRAMITES[k]; return `<button class="tram-b" data-t="${k}"><span class="ic">${v.icon}</span><span><b>${esc(v.label)}</b></span></button>`; }).join("");
+  $("view").innerHTML = `<h1 class="t">Documentos</h1><div class="sub">Constancias, uniones estables de hecho y naturalización. Elige el documento a emitir.</div><div class="card"><div class="grid-tram">${cards}</div></div>`;
   $("view").querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
 }
 
