@@ -269,6 +269,48 @@ function vNuevo() {
 
 /* ---- Formulario dinámico ---- */
 let EDIT_ID = null;
+/* ---- Validación de cédula por CNE (autocompleta nombre/fecha; avisa si no está) ---- */
+const CNE_ENDPOINT = "https://tfbzghjjfcaqmkzsxrrs.supabase.co/functions/v1/consultar-cedula";
+function cneCampo(base, cn, words) {
+  for (const w of words) for (const cand of [cn.replace("cedula", w), cn.replace("_cedula", "_" + w), cn.replace("cedula_", w + "_")]) {
+    if (cand !== cn) { const el = base.querySelector('[data-n="' + cand + '"]'); if (el) return el; }
+  }
+  return null;
+}
+function engancharCNE(base) {
+  base.querySelectorAll('[data-n*="cedula"]').forEach(ced => {
+    if (ced.dataset.cne) return; ced.dataset.cne = "1";
+    const nomEl = cneCampo(base, ced.dataset.n, ["nombres", "nombre"]);
+    const apeEl = cneCampo(base, ced.dataset.n, ["apellidos", "apellido"]);
+    const fechaEl = cneCampo(base, ced.dataset.n, ["fecha_nac"]);
+    const nota = document.createElement("div"); nota.style.cssText = "font-size:11px;margin-top:3px;min-height:12px;font-weight:600";
+    ced.parentNode.appendChild(nota);
+    ced.addEventListener("blur", async () => {
+      const num = (ced.value || "").replace(/\D/g, ""); nota.textContent = ""; nota.style.color = "";
+      if (num.length < 5 || num.length > 9) return;
+      const nac = /^\s*E/i.test(ced.value) ? "E" : "V";
+      const bg = ced.style.background; ced.style.background = "#fef9c3";
+      try {
+        const resp = await fetch(CNE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cedula: num, nacionalidad: nac }) });
+        const j = await resp.json(); const d = j && j.data;
+        if (resp.ok && d && j.error !== true && (d.primer_nombre || d.primer_apellido)) {
+          if (nomEl && apeEl) {
+            if (!nomEl.value.trim()) nomEl.value = [d.primer_nombre, d.segundo_nombre].filter(Boolean).join(" ");
+            if (!apeEl.value.trim()) apeEl.value = [d.primer_apellido, d.segundo_apellido].filter(Boolean).join(" ");
+          } else if (nomEl && !nomEl.value.trim()) {
+            nomEl.value = [d.primer_nombre, d.segundo_nombre, d.primer_apellido, d.segundo_apellido].filter(Boolean).join(" ");
+          }
+          if (nomEl) nomEl.dispatchEvent(new Event("input", { bubbles: true }));
+          if (fechaEl && !fechaEl.value && /^\d{4}-\d{2}-\d{2}$/.test(d.fecha_nac || "") && d.fecha_nac !== "0000-00-00") fechaEl.value = d.fecha_nac;
+          ced.style.background = "#dcfce7"; setTimeout(() => { ced.style.background = bg; }, 1400);
+          nota.style.color = "#15803d"; nota.textContent = "✓ CNE: " + [d.primer_nombre, d.segundo_nombre, d.primer_apellido, d.segundo_apellido].filter(Boolean).join(" ");
+        } else {
+          ced.style.background = bg; nota.style.color = "#b45309"; nota.textContent = "Cédula no registrada en CNE";
+        }
+      } catch (e) { ced.style.background = bg; }
+    });
+  });
+}
 async function vForm(tipo, registro) {
   const cfg = TRAMITES[tipo]; if (!cfg) { go("nuevo"); return; }
   const datos = (registro && registro.datos) || {};
@@ -301,6 +343,7 @@ async function vForm(tipo, registro) {
   if (cfg.num && !EDIT_ID) sugerirNumero(tipo);
   $("fCancel").onclick = () => go(EDIT_ID ? "ver/" + EDIT_ID : "registros");
   $("fSave").onclick = () => guardar(tipo);
+  engancharCNE($("view"));
 }
 async function sugerirNumero(tipo) {
   const ano = $("fAno") ? Number($("fAno").value) : new Date().getFullYear();
