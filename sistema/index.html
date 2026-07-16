@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784239157564";
+const RC_BUILD = "1784240356667";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -1313,6 +1313,29 @@ function datosCompletosRegistro(r) {
     if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
     Object.entries(obj).forEach(([k, v]) => { if ((base[k] == null || base[k] === "") && v != null && v !== "") base[k] = v; });
   });
+  // El PHP usaba nombres de columnas distintos. Se conservan los originales
+  // dentro de _legacy y se proyectan aquí al formulario actual sin reescribir
+  // ni perder el dato histórico almacenado.
+  if (r && r.tipo === "naturalizacion") {
+    const asignar = (destino, origen) => {
+      if ((base[destino] == null || base[destino] === "") && base[origen] != null && base[origen] !== "") base[destino] = base[origen];
+    };
+    asignar("fecha_acto", "fecha_acta");
+    asignar("cedula", "cedula_soli");
+    asignar("con_cedula", "cedula_con");
+    asignar("condicion", "condicion_ent");
+    const tipoPHP = String(base.tipo || "").toLowerCase();
+    if (!base.tipo_naturalizacion) {
+      base.tipo_naturalizacion = tipoPHP.includes(" ii")
+        ? "Modelo II · Art. 33.2 CRBV"
+        : "Modelo I · Art. 33.1 CRBV";
+    }
+    const modelo = NAT_MODELOS[base.tipo_naturalizacion];
+    if (modelo) {
+      if (!base.fundamento_legal) base.fundamento_legal = modelo.articulo;
+      if (!base.declaracion_legal) base.declaracion_legal = modelo.declaracion;
+    }
+  }
   return base;
 }
 function firmaParaRegistro(r) {
