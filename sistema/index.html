@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784240356667";
+const RC_BUILD = "1784242915653";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -724,7 +724,13 @@ async function obtenerDetalleCentro(f, limite) {
   const filas = [], bloque = 1000, maximo = limite || 200000;
   for (let desde = 0; desde < maximo; desde += bloque) {
     const { data, error } = await consultaDetalleCentro(f).range(desde, Math.min(desde + bloque - 1, maximo - 1));
-    if (error) throw error;
+    if (error) {
+      let detalle = null;
+      try { detalle = await error.context?.clone?.().json(); } catch (_) {}
+      const fallo = new Error(detalle?.error || error.message || "La función de IA no respondió correctamente.");
+      fallo.status = error.context?.status;
+      throw fallo;
+    }
     filas.push(...(data || []));
     if (!data || data.length < bloque) break;
   }
@@ -1048,7 +1054,7 @@ async function iaConsultar(pregunta) {
     await registrar("consulta_ia", data.plan?.tipo || null, null, `Consultó el asistente IA · ${Number(data.total || 0)} coincidencia(s)`);
   } catch (e) {
     espera.remove();
-    let mensaje = e?.context?.status === 429 ? "Se alcanzó el límite momentáneo de consultas. Espera un minuto." : (e?.message || "No se pudo consultar el asistente.");
+    let mensaje = e?.status === 429 ? "Se alcanzó el límite momentáneo de consultas. Espera un minuto." : (e?.message || "No se pudo consultar el asistente.");
     iaMensaje("bot", `No pude completar la consulta: ${mensaje}`);
   } finally {
     IA_OCUPADA = false;

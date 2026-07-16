@@ -116,9 +116,15 @@ async function cloudflareAI(messages: Array<{ role: string; content: string }>, 
     const detail = payload?.errors?.[0]?.message || `Cloudflare respondió ${res.status}`;
     throw new Error(detail);
   }
-  const text = payload?.result?.response;
-  if (typeof text !== "string" || !text.trim()) throw new Error("Cloudflare AI devolvió una respuesta vacía.");
-  return text.trim();
+  // Workers AI puede devolver texto en `result.response`, pero para salidas
+  // JSON recientes lo entrega como objeto y conserva el texto en `choices`.
+  // Admitimos ambos formatos para no depender de una sola versión de la API.
+  const choiceText = payload?.result?.choices?.[0]?.message?.content;
+  if (typeof choiceText === "string" && choiceText.trim()) return choiceText.trim();
+  const direct = payload?.result?.response;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  if (direct && typeof direct === "object") return JSON.stringify(direct);
+  throw new Error("Cloudflare AI devolvió una respuesta vacía.");
 }
 
 function compactData(value: unknown, depth = 0): unknown {
