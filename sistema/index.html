@@ -84,6 +84,15 @@
   .fila .k{font-weight:700;color:#475569;min-width:190px}
   .empty{text-align:center;color:var(--muted);padding:34px}
   .spin{width:30px;height:30px;border:3px solid #dbe4f5;border-top-color:var(--navy);border-radius:50%;animation:sp 1s linear infinite;margin:30px auto}
+  .rep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+  .rep-modelo{border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#fff,#f7faff);padding:15px;text-align:left;color:var(--ink);min-height:104px}
+  .rep-modelo:hover{border-color:#8db3d3;transform:translateY(-2px);box-shadow:0 12px 26px rgba(10,35,81,.1)}
+  .rep-modelo.on{border-color:var(--blue);box-shadow:0 0 0 3px rgba(18,108,168,.12);background:#edf6fd}
+  .rep-modelo .ri{font-size:22px;display:block;margin-bottom:7px}.rep-modelo b{font-size:13.5px;display:block;color:var(--navy)}.rep-modelo small{font-size:11.5px;color:var(--muted)}
+  .rep-chart{display:flex;align-items:flex-end;gap:7px;height:180px;padding:14px 6px 4px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .rep-bar{min-width:34px;flex:1;max-width:70px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+  .rep-bar i{display:block;width:72%;min-height:3px;background:linear-gradient(180deg,var(--blue),var(--navy));border-radius:7px 7px 2px 2px}.rep-bar span{font-size:9.5px;color:var(--muted);white-space:nowrap}.rep-bar b{font-size:9.5px;color:var(--navy)}
+  @media(max-width:900px){.cr-panels{grid-template-columns:1fr!important}}
   @keyframes sp{to{transform:rotate(360deg)}}
   /* Institutional interface refresh */
   :root{--navy:#071d45;--navy2:#0d316a;--blue:#126ca8;--gold:#e7b93f;--bg:#f3f6fa;--line:#dce4ee;--r:16px}
@@ -211,7 +220,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784222998003";
+const RC_BUILD = "1784224559000";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -243,9 +252,11 @@ const TIPOS_HISTORICOS = {
   legacy_sin_tipo: "Trámite histórico sin clasificación",
   legacy_otro: "Otro trámite histórico",
 };
+const TIPOS_INACTIVOS = new Set(["solteria", "mudanza", "fe_vida", "buena_conducta"]);
+const tramiteActivo = (tipo) => !TIPOS_INACTIVOS.has(tipo);
 const tipoLabel = (t) => (TRAMITES[t] && TRAMITES[t].label) || TIPOS_HISTORICOS[t] || (t === "acta_legacy" ? "Acta pre-cargada" : t === "reporte" ? "Reporte de oficina" : t);
 const opcionesTipos = () => [...new Set([...Object.keys(TRAMITES), ...Object.keys(TIPOS_HISTORICOS)])]
-  .map(k => `<option value="${esc(k)}">${esc(tipoLabel(k))}</option>`).join("");
+  .map(k => `<option value="${esc(k)}">${esc(tipoLabel(k) + (TIPOS_INACTIVOS.has(k) ? " · histórico" : ""))}</option>`).join("");
 
 /* ============ AUTH ============ */
 async function cargarPerfil() {
@@ -302,6 +313,7 @@ function construirNav() {
     ["form/permiso", "⚰️ Permisos", "Registro"],
     ["registros", "📋 Trámites y actas", "Consultas"],
     ["reportes", "📊 Reportes", "Consultas"],
+    ["centro-reportes", "🧭 Centro de Reportes", "Consultas"],
     ["actividad", "🕒 Actividad", "Control"],
   ];
   if (esAdmin()) { items.push(["usuarios", "👥 Usuarios", "Control"]); items.push(["config", "⚙️ Configuración", "Control"]); }
@@ -351,6 +363,7 @@ function router() {
   else if (v === "documentos") vDocumentos();
   else if (v === "registros") vRegistros();
   else if (v === "reportes") vReportes();
+  else if (v === "centro-reportes") vCentroReportes();
   else if (v === "legacy") vLegacy();
   else if (v === "actividad") vActividad();
   else if (v === "usuarios") esAdmin() ? vUsuarios() : vInicio();
@@ -371,19 +384,19 @@ async function vInicio() {
   const total = todosRes.count || 0;
   const leg = archivoRes.count || 0;
   const nuevos = Math.max(0, total - leg);
-  view.innerHTML = `<h1 class="t">Inicio</h1><div class="sub">${esAdmin() ? "Vista de administrador — ves todos los registros." : "Ves y editas solo lo que tú cargas."}</div>
+  view.innerHTML = `<h1 class="t">Inicio</h1><div class="sub">Todos los usuarios pueden consultar la información; cada funcionario edita únicamente sus propios registros.</div>
     <div class="card"><div class="stats">
       <div class="stat"><b>${total.toLocaleString("es-VE")}</b><span>Total de registros</span></div>
       <div class="stat"><b>${nuevos.toLocaleString("es-VE")}</b><span>Registrados en el sistema</span></div>
       <div class="stat"><b>${leg}</b><span>Actas del archivo</span></div>
-      <div class="stat"><b>${Object.keys(TRAMITES).length}</b><span>Tipos de trámite</span></div>
+      <div class="stat"><b>${Object.keys(TRAMITES).filter(tramiteActivo).length}</b><span>Servicios activos</span></div>
     </div></div>
     <div class="card"><b style="font-size:15px">Iniciar un trámite</b><div class="grid-tram" style="margin-top:12px">${gridTramites()}</div></div>`;
   view.querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
 }
 function gridTramites() {
   const grupos = {};
-  for (const [k, v] of Object.entries(TRAMITES)) { (grupos[v.grupo] = grupos[v.grupo] || []).push([k, v]); }
+  for (const [k, v] of Object.entries(TRAMITES).filter(([k]) => tramiteActivo(k))) { (grupos[v.grupo] = grupos[v.grupo] || []).push([k, v]); }
   return Object.entries(grupos).map(([g, arr]) => `<div style="grid-column:1/-1;font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-top:6px">${esc(g)}</div>` +
     arr.map(([k, v]) => `<button class="tram-b" data-t="${k}"><span class="ic">${v.icon}</span><span><b>${esc(v.label)}</b></span></button>`).join("")).join("");
 }
@@ -432,7 +445,7 @@ async function vReportes() {
   const total = Number(data.total || 0), archivo = Number(data.archivo || 0), nuevos = Number(data.nuevos || 0);
   const filasTipo = Object.entries(porTipo).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(tipoLabel(k))}</td><td style="text-align:right;font-weight:800">${v}</td></tr>`).join("");
   const filasAno = Object.entries(porAno).sort((a, b) => String(b[0]).localeCompare(String(a[0]))).map(([k, v]) => `<tr><td>${esc(k)}</td><td style="text-align:right;font-weight:800">${v}</td></tr>`).join("");
-  $("view").innerHTML = `<h1 class="t">Reportes</h1><div class="sub">${esAdmin() ? "Estadísticas de todos los trámites y actas." : "Estadísticas de tus trámites y las actas del archivo."}</div>
+  $("view").innerHTML = `<h1 class="t">Reportes</h1><div class="sub">Estadísticas de todos los trámites y actas visibles para los usuarios del sistema.</div>
     <div class="card"><div class="stats">
       <div class="stat"><b>${total}</b><span>Total de registros</span></div>
       <div class="stat"><b>${nuevos}</b><span>Registrados en el sistema</span></div>
@@ -464,9 +477,174 @@ function reportePDF(porTipo, porAno, tot) {
   doc.save("reporte_registro_civil.pdf");
   registrar("reporte", null, null, "Generó un reporte estadístico");
 }
+
+/* ---- Centro de Reportes (evolución del módulo PHP original) ---- */
+const MODELOS_REPORTE = [
+  { id: "general", icon: "📚", label: "Trámites · General", desc: "Listado completo por rango de fechas" },
+  { id: "especifico", icon: "🎯", label: "Trámite específico", desc: "Un tipo de trámite seleccionado" },
+  { id: "grupo", icon: "📊", label: "Consolidado por tipo", desc: "Cantidades agrupadas y tendencia" },
+  { id: "usuario", icon: "👤", label: "Por funcionario", desc: "Productividad y trámites atendidos" },
+  { id: "nacimientos", icon: "👶", label: "Nacimientos", desc: "Actas de nacimiento registradas", tipo: "nacimiento" },
+  { id: "matrimonios", icon: "💍", label: "Matrimonios", desc: "Actas de matrimonio registradas", tipo: "matrimonio" },
+  { id: "uniones", icon: "🤝", label: "Uniones estables", desc: "Uniones estables de hecho", tipo: "union_estable" },
+  { id: "copias", icon: "🖨️", label: "Entrega de copias", desc: "Copias certificadas entregadas", tipo: "copia_acta" },
+];
+let CENTRO_ESTADO = null;
+let CENTRO_FUNCIONARIOS = [];
+const fechaLegible = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString("es-VE") : "—";
+const numeroVE = (n) => Number(n || 0).toLocaleString("es-VE");
+
+async function vCentroReportes() {
+  const hoy = new Date(), hasta = hoy.toISOString().slice(0, 10), desde = `${hoy.getFullYear()}-01-01`;
+  $("view").innerHTML = `<h1 class="t">Centro de Reportes</h1><div class="sub">Consulta, analiza y exporta la información del Registro Civil desde un solo lugar.</div>
+    <div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px"><div><b style="font-size:16px;color:var(--navy)">1. Elige el informe</b><div class="sub">Incluye todos los reportes que existían en el sistema anterior.</div></div><span class="badge a">Centro inteligente</span></div>
+      <div class="rep-grid">${MODELOS_REPORTE.map((m, i) => `<button class="rep-modelo ${i === 0 ? "on" : ""}" data-modelo="${m.id}"><span class="ri">${m.icon}</span><b>${esc(m.label)}</b><small>${esc(m.desc)}</small></button>`).join("")}</div>
+    </div>
+    <div class="card"><b style="font-size:16px;color:var(--navy)">2. Define el período y los filtros</b>
+      <div class="form-grid" style="margin-top:14px">
+        <div class="fld w3"><label>Desde</label><input type="date" id="crDesde" value="${desde}"></div>
+        <div class="fld w3"><label>Hasta</label><input type="date" id="crHasta" value="${hasta}"></div>
+        <div class="fld w3" id="crTipoWrap" style="display:none"><label>Tipo de trámite</label><select id="crTipo"><option value="">Seleccione</option>${opcionesTipos()}</select></div>
+        <div class="fld w3" id="crFuncWrap" style="display:none"><label>Funcionario</label><select id="crFunc"><option value="">Todos los funcionarios</option></select></div>
+        <div class="fld w3"><label>Origen</label><select id="crOrigen"><option value="">Todo el sistema</option><option value="archivo">Archivo histórico</option><option value="sistema">Registros nuevos</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:17px"><button class="btn g" id="crGenerar">⚡ Generar análisis</button><button class="btn o" id="crLimpiar">↺ Restablecer</button></div>
+    </div>
+    <div id="crResultado"><div class="card"><div class="spin"></div></div></div>`;
+  let modelo = "general";
+  const actualizarCampos = () => {
+    $("crTipoWrap").style.display = modelo === "especifico" ? "flex" : "none";
+    $("crFuncWrap").style.display = modelo === "usuario" ? "flex" : "none";
+  };
+  $("view").querySelectorAll("[data-modelo]").forEach(b => b.onclick = () => {
+    modelo = b.dataset.modelo;
+    $("view").querySelectorAll("[data-modelo]").forEach(x => x.classList.toggle("on", x === b));
+    actualizarCampos();
+  });
+  $("crGenerar").onclick = () => cargarCentroReportes(modelo);
+  $("crLimpiar").onclick = () => vCentroReportes();
+  actualizarCampos();
+  await cargarCentroReportes(modelo);
+}
+
+function filtrosCentro(modelo) {
+  const config = MODELOS_REPORTE.find(m => m.id === modelo) || MODELOS_REPORTE[0];
+  const tipo = config.tipo || (modelo === "especifico" ? $("crTipo").value : "");
+  return {
+    modelo, titulo: config.label, desde: $("crDesde").value || null, hasta: $("crHasta").value || null,
+    tipo: tipo || null, funcionario: modelo === "usuario" ? ($("crFunc").value || null) : null,
+    origen: $("crOrigen").value || null,
+  };
+}
+
+async function cargarCentroReportes(modelo) {
+  const f = filtrosCentro(modelo);
+  if (f.desde && f.hasta && f.desde > f.hasta) { toast("La fecha inicial no puede ser posterior a la fecha final."); return; }
+  if (modelo === "especifico" && !f.tipo) { toast("Selecciona el tipo de trámite."); return; }
+  $("crResultado").innerHTML = `<div class="card"><div class="spin"></div><div class="sub" style="text-align:center">Analizando registros…</div></div>`;
+  const { data, error } = await sb.rpc("rc_centro_reportes", {
+    p_desde: f.desde, p_hasta: f.hasta, p_tipo: f.tipo, p_funcionario: f.funcionario, p_origen: f.origen,
+  });
+  if (error || !data) { $("crResultado").innerHTML = `<div class="card"><div class="empty">No se pudo generar el reporte. ${esc(error && error.message || "")}</div></div>`; return; }
+  CENTRO_ESTADO = { filtros: f, data };
+  if (!CENTRO_FUNCIONARIOS.length) CENTRO_FUNCIONARIOS = Object.keys(data.por_funcionario || {}).filter(x => x && x !== "Sin funcionario").sort();
+  const sel = $("crFunc");
+  if (sel && sel.options.length <= 1 && CENTRO_FUNCIONARIOS.length) sel.innerHTML = `<option value="">Todos los funcionarios</option>` + CENTRO_FUNCIONARIOS.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  pintarCentroReportes(f, data);
+  await registrar("reporte", f.tipo, null, `Consultó ${f.titulo} del ${f.desde || "inicio"} al ${f.hasta || "hoy"}`);
+}
+
+function pintarCentroReportes(f, data) {
+  const meses = Object.entries(data.por_mes || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  const maxMes = Math.max(1, ...meses.map(x => Number(x[1])));
+  const chart = meses.length ? meses.map(([m, v]) => `<div class="rep-bar"><b>${numeroVE(v)}</b><i style="height:${Math.max(3, Math.round(Number(v) / maxMes * 125))}px"></i><span>${esc(m.slice(5) + "/" + m.slice(2, 4))}</span></div>`).join("") : `<div class="empty" style="width:100%">Sin actividad en este período.</div>`;
+  let desglose = data.por_tipo || {}, tituloDesglose = "Distribución por tipo";
+  if (f.modelo === "usuario") { desglose = data.por_funcionario || {}; tituloDesglose = "Productividad por funcionario"; }
+  if (f.modelo === "copias") { desglose = data.copias_por_tipo || {}; tituloDesglose = "Copias entregadas por tipo de acta"; }
+  if (["nacimientos", "matrimonios", "uniones"].includes(f.modelo)) { desglose = data.por_mes || {}; tituloDesglose = "Registros por mes"; }
+  const filasDesglose = Object.entries(desglose).sort((a, b) => Number(b[1]) - Number(a[1])).map(([k, v]) => `<tr><td>${esc((data.por_tipo || {})[k] != null ? tipoLabel(k) : k)}</td><td style="text-align:right;font-weight:800">${numeroVE(v)}</td></tr>`).join("");
+  const preview = data.preview || [];
+  const filas = preview.map(r => `<tr><td>${fechaLegible(r.fecha)}</td><td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td><td>${r.numero_acta ? esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : "—"}</td><td>${esc(r.owner_usuario || "—")}</td><td><button class="btn o sm" data-crver="${r.id}">Ver</button></td></tr>`).join("");
+  $("crResultado").innerHTML = `<div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><b style="font-size:17px;color:var(--navy)">${esc(f.titulo)}</b><div class="sub">${fechaLegible(f.desde)} — ${fechaLegible(f.hasta)}${f.tipo ? " · " + esc(tipoLabel(f.tipo)) : ""}${f.funcionario ? " · " + esc(f.funcionario) : ""}</div></div><span class="badge mine">Datos verificados</span></div>
+    <div class="stats" style="margin-top:16px"><div class="stat"><b>${numeroVE(data.total)}</b><span>Total del período</span></div><div class="stat"><b>${numeroVE(data.nuevos)}</b><span>Registros nuevos</span></div><div class="stat"><b>${numeroVE(data.archivo)}</b><span>Archivo histórico</span></div><div class="stat"><b>${Object.keys(data.por_tipo || {}).length}</b><span>Tipos encontrados</span></div></div></div>
+    <div class="card"><b style="font-size:15px;color:var(--navy)">Tendencia mensual</b><div class="rep-chart">${chart}</div></div>
+    <div style="display:grid;grid-template-columns:minmax(260px,.8fr) minmax(460px,1.6fr);gap:16px;align-items:start" class="cr-panels">
+      <div class="card"><b style="font-size:15px;color:var(--navy)">${esc(tituloDesglose)}</b><div style="overflow:auto;margin-top:11px"><table><thead><tr><th>Concepto</th><th style="text-align:right">Cantidad</th></tr></thead><tbody>${filasDesglose || '<tr><td colspan="2">Sin datos</td></tr>'}</tbody></table></div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b style="font-size:15px;color:var(--navy)">Vista previa</b><span class="sub">Primeros ${Math.min(100, preview.length)} de ${numeroVE(data.total)}</span></div><div style="overflow:auto;max-height:520px;margin-top:11px"><table><thead><tr><th>Fecha</th><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N°/Año</th><th>Funcionario</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="7">Sin registros</td></tr>'}</tbody></table></div></div>
+    </div>
+    <div class="card"><b style="font-size:15px;color:var(--navy)">Exportar</b><div class="sub">El PDF ofrece un informe ejecutivo; el CSV conserva el detalle completo para análisis.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" id="crPdf" ${Number(data.total) ? "" : "disabled"}>📄 Descargar PDF</button><button class="btn o" id="crCsv" ${Number(data.total) ? "" : "disabled"}>📥 Exportar detalle CSV</button></div></div>`;
+  $("crResultado").querySelectorAll("[data-crver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.crver));
+  if ($("crPdf")) $("crPdf").onclick = () => descargarCentroPDF();
+  if ($("crCsv")) $("crCsv").onclick = () => descargarCentroCSV();
+}
+
+function consultaDetalleCentro(f) {
+  let q = sb.from("rc_tramites").select("fecha,tipo,titular,cedula_titular,numero_acta,ano,legacy,owner_usuario").order("fecha", { ascending: true });
+  if (f.desde) q = q.gte("fecha", f.desde); if (f.hasta) q = q.lte("fecha", f.hasta);
+  if (f.tipo) q = q.eq("tipo", f.tipo); if (f.funcionario) q = q.eq("owner_usuario", f.funcionario);
+  if (f.origen) q = q.eq("legacy", f.origen === "archivo");
+  return q;
+}
+
+async function obtenerDetalleCentro(f, limite) {
+  const filas = [], bloque = 1000, maximo = limite || 200000;
+  for (let desde = 0; desde < maximo; desde += bloque) {
+    const { data, error } = await consultaDetalleCentro(f).range(desde, Math.min(desde + bloque - 1, maximo - 1));
+    if (error) throw error;
+    filas.push(...(data || []));
+    if (!data || data.length < bloque) break;
+  }
+  return filas;
+}
+
+function descargarBlob(nombre, tipo, contenido) {
+  const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
+  const a = document.createElement("a"); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+async function descargarCentroCSV() {
+  if (!CENTRO_ESTADO) return;
+  const b = $("crCsv"); b.disabled = true; b.textContent = "Preparando detalle…";
+  try {
+    const filas = await obtenerDetalleCentro(CENTRO_ESTADO.filtros);
+    const csv = ["Fecha,Trámite,Titular,Cédula,Número,Año,Origen,Funcionario", ...filas.map(r => [r.fecha, tipoLabel(r.tipo), r.titular, r.cedula_titular, r.numero_acta, r.ano, r.legacy ? "Archivo" : "Sistema", r.owner_usuario].map(v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`).join(","))].join("\r\n");
+    descargarBlob(`reporte_${CENTRO_ESTADO.filtros.modelo}_${CENTRO_ESTADO.filtros.desde || "inicio"}_${CENTRO_ESTADO.filtros.hasta || "hoy"}.csv`, "text/csv;charset=utf-8", "\ufeff" + csv);
+    await registrar("reporte", CENTRO_ESTADO.filtros.tipo, null, `Exportó ${numeroVE(filas.length)} registros a CSV`);
+  } catch (e) { toast("No se pudo exportar: " + (e.message || e)); }
+  finally { b.disabled = false; b.textContent = "📥 Exportar detalle CSV"; }
+}
+
+async function descargarCentroPDF() {
+  if (!CENTRO_ESTADO) return;
+  const { filtros: f, data } = CENTRO_ESTADO;
+  const b = $("crPdf"); b.disabled = true; b.textContent = "Generando PDF…";
+  try {
+    const detalle = Number(data.total) <= 5000 ? await obtenerDetalleCentro(f, 5000) : (data.preview || []);
+    const doc = new jsPDF({ unit: "mm", format: "letter", orientation: "landscape" }), W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+    const cabecera = () => { tricolor(doc); doc.setTextColor(7,29,69); doc.setFont("times","bold"); doc.setFontSize(15); doc.text("CENTRO DE REPORTES · REGISTRO CIVIL", W / 2, 17, { align: "center" }); doc.setFont("times","normal"); doc.setFontSize(10); doc.setTextColor(70); doc.text(`${f.titulo} · ${fechaLegible(f.desde)} al ${fechaLegible(f.hasta)}`, W / 2, 24, { align: "center" }); };
+    cabecera(); let y = 34;
+    doc.setFont("times","bold"); doc.setTextColor(7,29,69); doc.setFontSize(12); doc.text(`Total: ${numeroVE(data.total)}   ·   Sistema: ${numeroVE(data.nuevos)}   ·   Archivo: ${numeroVE(data.archivo)}`, 14, y); y += 9;
+    if (Number(data.total) > 5000) { doc.setFont("times","italic"); doc.setTextColor(120); doc.setFontSize(9); doc.text("El PDF muestra una vista ejecutiva de 100 filas por su extensión. El CSV contiene el detalle completo.", 14, y); y += 8; }
+    const anchos = [24,45,68,31,27,54], heads = ["Fecha","Trámite","Titular","Cédula","N° / Año","Funcionario"];
+    const tablaHead = () => { doc.setFillColor(7,29,69); doc.setTextColor(255); doc.setFont("helvetica","bold"); doc.setFontSize(8); let x=14; heads.forEach((h,i)=>{doc.rect(x,y,anchos[i],7,"F");doc.text(h,x+2,y+4.7);x+=anchos[i];}); y+=7; };
+    tablaHead();
+    detalle.forEach((r, idx) => {
+      if (y > H - 16) { doc.addPage(); cabecera(); y = 32; tablaHead(); }
+      if (idx % 2) { doc.setFillColor(242,246,250); doc.rect(14,y,anchos.reduce((a,c)=>a+c,0),6,"F"); }
+      doc.setTextColor(20); doc.setFont("helvetica","normal"); doc.setFontSize(7.4); let x=14;
+      const vals=[fechaLegible(r.fecha),tipoLabel(r.tipo),r.titular||"—",r.cedula_titular||"—",r.numero_acta ? `${r.numero_acta}${r.ano?"/"+r.ano:""}`:"—",r.owner_usuario||"—"];
+      vals.forEach((v,i)=>{doc.text(String(v).slice(0,i===2?42:i===5?32:24),x+2,y+4.1);x+=anchos[i];}); y+=6;
+    });
+    const paginas = doc.internal.getNumberOfPages(); for (let p=1;p<=paginas;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(120);doc.text(`Página ${p} de ${paginas} · Registro Civil de Charallave`,W/2,H-6,{align:"center"});}
+    doc.save(`reporte_${f.modelo}_${f.desde || "inicio"}_${f.hasta || "hoy"}.pdf`);
+    await registrar("reporte", f.tipo, null, `Generó PDF de ${f.titulo}`);
+  } catch (e) { toast("No se pudo generar el PDF: " + (e.message || e)); }
+  finally { b.disabled = false; b.textContent = "📄 Descargar PDF"; }
+}
+
 function vDocumentos() {
-  const docs = ["union_estable", "disolucion", "naturalizacion", "fe_vida", "residencia", "solteria", "buena_conducta", "perdida", "expensa", "manutencion", "viudez"];
-  const cards = docs.filter(k => TRAMITES[k]).map(k => { const v = TRAMITES[k]; return `<button class="tram-b" data-t="${k}"><span class="ic">${v.icon}</span><span><b>${esc(v.label)}</b></span></button>`; }).join("");
+  const docs = ["union_estable", "disolucion", "naturalizacion", "residencia", "perdida", "expensa", "manutencion", "viudez"];
+  const cards = docs.filter(k => TRAMITES[k] && tramiteActivo(k)).map(k => { const v = TRAMITES[k]; return `<button class="tram-b" data-t="${k}"><span class="ic">${v.icon}</span><span><b>${esc(v.label)}</b></span></button>`; }).join("");
   $("view").innerHTML = `<h1 class="t">Documentos</h1><div class="sub">Constancias, uniones estables de hecho y naturalización. Elige el documento a emitir.</div><div class="card"><div class="grid-tram">${cards}</div></div>`;
   $("view").querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
 }
@@ -552,6 +730,7 @@ function wireRepeaters(tipo, datos) {
   });
 }
 async function vForm(tipo, registro) {
+  if (!registro && !tramiteActivo(tipo)) { toast("Este servicio quedó disponible solo para consulta histórica."); go("registros"); return; }
   const cfg = TRAMITES[tipo]; if (!cfg) { go("nuevo"); return; }
   const datos = (registro && registro.datos) || {};
   EDIT_ID = registro ? registro.id : null;
@@ -635,7 +814,7 @@ const TAMANO_PAGINA = 100;
 const limpiarBusqueda = (valor) => String(valor || "").replace(/[(),\\"']/g, " ").trim();
 async function vRegistros() {
   const view = $("view");
-  view.innerHTML = `<h1 class="t">Trámites y actas</h1><div class="sub">${esAdmin() ? "Ves todos los registros del sistema y las actas del archivo." : "Tus registros y las actas del archivo (visibles para todos)."}</div>
+  view.innerHTML = `<h1 class="t">Trámites y actas</h1><div class="sub">Todos los usuarios pueden consultar los registros del sistema y las actas del archivo.</div>
     <div class="card"><div class="filtros">
       <input id="rBuscar" placeholder="Buscar por nombre, cédula, N° acta…" style="min-width:240px">
       <select id="rTipo"><option value="">Todos los tipos</option>${opcionesTipos()}<option value="reporte">Reportes de oficina</option></select>
@@ -683,7 +862,7 @@ async function vVer(id) {
   const { data: r } = await sb.from("rc_tramites").select("*").eq("id", id).single();
   if (!r) { $("view").innerHTML = `<div class="empty">Registro no encontrado o sin acceso.</div>`; return; }
   const cfg = TRAMITES[r.tipo];
-  const puedeEditar = (r.owner === USER.id || esAdmin()) && r.tipo !== "acta_legacy";
+  const puedeEditar = (r.owner === USER.id || esAdmin()) && r.tipo !== "acta_legacy" && tramiteActivo(r.tipo);
   let cuerpo = "";
   if (cfg) { cfg.secciones.forEach(sec => {
     if (sec.texto) { cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div><div class="fila"><span style="font-size:12px;line-height:1.5;color:#475569;white-space:pre-line">${esc(sec.texto)}</span></div>`; return; }
