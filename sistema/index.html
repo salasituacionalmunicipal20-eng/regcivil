@@ -151,7 +151,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784214708757";
+const RC_BUILD = "1784216579522";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -818,7 +818,7 @@ function drawGrid(doc, fields, x0, y, W) {
 }
 function bloqueFirmas(doc, y) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15;
-  if (y + 66 > H - 10) { doc.addPage(); y = 20; } else y += 12;
+  if (y + 73 > H - 16) { doc.addPage(); y = 22; } else y += 12;
   const xL = MX + (RX - MX) * 0.25, xR = MX + (RX - MX) * 0.75;
   doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.3);
   const par = (yy, a, b) => {
@@ -828,9 +828,9 @@ function bloqueFirmas(doc, y) {
   };
   par(y, "Firma del Declarante", "Firma del Declarante");
   doc.setFontSize(7); doc.setTextColor(90); doc.text("Impresión Dactilar", xL + 31, y + 2); doc.text("Impresión Dactilar", xR + 31, y + 2);
-  y += 22; par(y, "Firma del Registrador(a)", "Sello Húmedo");
-  y += 22; par(y, "Firma del Testigo", "Firma del Testigo");
-  y += 15;
+  y += 18; par(y, "Firma del Registrador(a)", "Sello Húmedo");
+  y += 18; par(y, "Firma del Testigo", "Firma del Testigo");
+  y += 13;
   doc.setDrawColor(0); doc.line(W / 2 - 34, y, W / 2 + 34, y);
   doc.setFont("times", "bold"); doc.setFontSize(9.5); doc.setTextColor(0); doc.text(FIRMA.nombre, W / 2, y + 4.5, { align: "center" });
   doc.setFont("times", "normal"); doc.setFontSize(8);
