@@ -149,6 +149,18 @@
   .modal-bg{background:rgba(4,14,34,.68);backdrop-filter:blur(5px)}
   .modal{border-radius:20px;border:1px solid rgba(255,255,255,.45);box-shadow:0 34px 90px rgba(0,0,0,.38)}
   .toast{border:1px solid rgba(255,255,255,.2);box-shadow:0 15px 38px rgba(0,0,0,.3)}
+  .ai-hero{overflow:hidden;position:relative;background:linear-gradient(135deg,#061a3e 0%,#0d4277 70%,#126ca8 100%);color:#fff;border:none}
+  .ai-hero::after{content:"✦";position:absolute;right:28px;top:-25px;font-size:150px;color:rgba(255,255,255,.08);line-height:1}
+  .ai-hero h2{font-family:Georgia,"Times New Roman",serif;font-size:25px;position:relative;z-index:1}.ai-hero p{color:#d4e4f5;max-width:720px;margin-top:7px;position:relative;z-index:1}
+  .ai-safe{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:5px 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.1);font-size:11px;font-weight:750;position:relative;z-index:1}
+  .ai-chat{min-height:330px;max-height:580px;overflow-y:auto;padding:6px 3px 16px;display:flex;flex-direction:column;gap:13px}
+  .ai-msg{max-width:86%;border-radius:16px;padding:13px 15px;font-size:14px;box-shadow:0 6px 18px rgba(7,29,69,.07);white-space:normal}
+  .ai-msg.bot{align-self:flex-start;background:#f1f6fb;border:1px solid #d8e5f0;border-bottom-left-radius:5px}.ai-msg.user{align-self:flex-end;background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;border-bottom-right-radius:5px}
+  .ai-msg .who{display:block;font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;color:var(--blue)}.ai-msg.user .who{color:#c9d8ee}
+  .ai-sources{margin-top:10px;padding-top:9px;border-top:1px solid #cfdae6}.ai-source{display:flex;justify-content:space-between;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid #e1e9f1;font-size:12px}.ai-source:last-child{border-bottom:0}
+  .ai-compose{display:flex;gap:10px;align-items:flex-end;border-top:1px solid var(--line);padding-top:15px}.ai-compose textarea{min-height:52px;max-height:130px}.ai-compose .btn{min-height:52px}
+  .ai-suggestions{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.ai-suggestion{border:1px solid #cbd9e7;background:#f8fbfe;color:#173b66;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:650}.ai-suggestion:hover{background:#eaf3fb;border-color:#8db3d3}
+  @media(max-width:640px){.ai-msg{max-width:96%}.ai-compose{flex-direction:column}.ai-compose .btn{width:100%;justify-content:center}.ai-hero h2{font-size:21px}}
   @media(max-width:760px){.top{height:58px;padding:0 14px}.side{top:58px}.main{padding:22px 15px 38px}.card-login .bd{padding:25px 23px}.card{padding:17px}h1.t{font-size:23px}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 </style>
@@ -220,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784224559000";
+const RC_BUILD = "1784239157564";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -245,6 +257,91 @@ const f = (n, l, t, o, w) => ({ n, l, t: t || "t", o, w: w || 6 });
 const S = (t, campos) => ({ t, campos });
 // tipos de campo: t(texto) ta(área) date num sel ced(cédula)
 const TRAMITES = {"nacimiento":{"label":"Acta de Nacimiento","grupo":"Actos registrales","icon":"👶","num":true,"titular":["nombres_n","apellidos_n"],"ced":"cedula_n","secciones":[{"t":"Datos del acta","campos":[{"n":"fecha_acto","l":"Fecha del acto","t":"date","w":4},{"n":"tipo_acta","l":"Tipo","t":"sel","w":4,"o":["Nacimiento","Reconocimiento","Inserción"]}]},{"t":"Datos del niño(a)","campos":[{"n":"genero","l":"Género","t":"sel","w":4,"o":["Masculino","Femenino"]},{"n":"nombres_n","l":"Nombres","t":"t","w":4},{"n":"apellidos_n","l":"Apellidos","t":"t","w":4},{"n":"estado_nac","l":"Estado de nacimiento","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_nac","l":"Municipio - Parroquia","t":"t","w":4},{"n":"pais_n","l":"País","t":"t","w":4},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":6},{"n":"hora_nac","l":"Hora de nacimiento","t":"t","w":6}]},{"t":"Certificado médico de nacimiento","campos":[{"n":"certificado","l":"Certificado N°","t":"t","w":3},{"n":"fecha_cert","l":"Fecha","t":"date","w":3},{"n":"centro_salud","l":"Centro de salud","t":"t","w":6},{"n":"autoridad","l":"Autoridad","t":"t","w":6},{"n":"mpps","l":"N° MPPS","t":"t","w":6}]},{"t":"Datos de la madre","campos":[{"n":"nombres_m","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_m","l":"Cédula","t":"ced","w":3},{"n":"edad_m","l":"Edad","t":"num","w":2},{"n":"fecha_nac_m","l":"Fecha de nacimiento","t":"date","w":3},{"n":"profesion_madre","l":"Profesión","t":"t","w":4},{"n":"nacionalidad_m","l":"Nacionalidad","t":"t","w":4},{"n":"comunidad_m","l":"Comunidad indígena","t":"t","w":4},{"n":"direccion_madre","l":"Dirección","t":"ta","w":6},{"n":"declaracion_m","l":"Declaración jurada de identidad","t":"ta","w":6}]},{"t":"Datos del padre","campos":[{"n":"nombres_p","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_p","l":"Cédula","t":"ced","w":3},{"n":"edad_p","l":"Edad","t":"num","w":2},{"n":"fecha_nac_p","l":"Fecha de nacimiento","t":"date","w":3},{"n":"profesion_padre","l":"Profesión","t":"t","w":4},{"n":"nacionalidad_p","l":"Nacionalidad","t":"t","w":4},{"n":"comunidad_p","l":"Comunidad indígena","t":"t","w":4},{"n":"direccion_padre","l":"Dirección","t":"ta","w":6},{"n":"declaracion_p","l":"Declaración jurada de identidad","t":"ta","w":6}]},{"t":"Testigo 1","campos":[{"n":"t1_nombre","l":"Nombres y apellidos","t":"t","w":6},{"n":"t1_cedula","l":"Cédula","t":"ced","w":3},{"n":"t1_edad","l":"Edad","t":"num","w":3},{"n":"t1_profesion","l":"Profesión","t":"t","w":4},{"n":"t1_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"t1_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Testigo 2","campos":[{"n":"t2_nombre","l":"Nombres y apellidos","t":"t","w":6},{"n":"t2_cedula","l":"Cédula","t":"ced","w":3},{"n":"t2_edad","l":"Edad","t":"num","w":3},{"n":"t2_profesion","l":"Profesión","t":"t","w":4},{"n":"t2_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"t2_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Datos de inserción","campos":[{"n":"acta_insercion","l":"Acta N°","t":"t","w":4},{"n":"fecha_insercion","l":"Fecha","t":"date","w":4},{"n":"datos_autoridad","l":"Datos de la autoridad","t":"ta","w":12}]},{"t":"Datos del mandatario","campos":[{"n":"mand_nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"mand_cedula","l":"Cédula","t":"ced","w":3},{"n":"mand_edad","l":"Edad","t":"num","w":3},{"n":"mand_profesion","l":"Profesión","t":"t","w":4},{"n":"mand_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"mand_comunidad","l":"Comunidad indígena","t":"t","w":4},{"n":"mand_notaria","l":"Datos de la notaría","t":"ta","w":6},{"n":"mand_numero","l":"N°","t":"t","w":3},{"n":"mand_fecha","l":"Fecha","t":"date","w":3}]},{"t":"Medida de protección","campos":[{"n":"consejo","l":"Consejo de Protección","t":"t","w":6},{"n":"medida","l":"Medida","t":"t","w":6},{"n":"medida_fecha","l":"Fecha","t":"date","w":4},{"n":"consejero","l":"Nombres del consejero","t":"t","w":8},{"n":"extracto_medida","l":"Extracto de la medida","t":"ta","w":12}]},{"t":"Datos por decisión judicial","campos":[{"n":"tribunal","l":"Tribunal","t":"t","w":6},{"n":"sentencia","l":"N° de sentencia","t":"t","w":3},{"n":"juez","l":"Nombres del juez(a)","t":"t","w":3},{"n":"sentencia_fecha","l":"Fecha","t":"date","w":4},{"n":"extracto_sentencia","l":"Extracto de la sentencia","t":"ta","w":12}]},{"t":"Observaciones","campos":[{"n":"observaciones","l":"Observaciones","t":"ta","w":12}]},{"t":"Primera Nota Marginal","campos":[{"n":"nota_marginal_1","l":"Anotación legal posterior (matrimonio, defunción, rectificación, reconocimiento, etc.)","t":"ta","w":12}]},{"t":"Segunda Nota Marginal","campos":[{"n":"nota_marginal_2","l":"Segunda anotación legal posterior","t":"ta","w":12}]}]},"matrimonio":{"label":"Acta de Matrimonio","grupo":"Actos registrales","icon":"💍","num":true,"titular":["nombres_a","nombres_b"],"ced":"cedula_a","secciones":[{"t":"Datos del acta","campos":[{"n":"tipo_acta","l":"Tipo","t":"sel","w":4,"o":["Matrimonio","Inserción"]},{"n":"lugar_acto","l":"Lugar","t":"t","w":8},{"n":"fecha_acto","l":"Fecha","t":"date","w":4},{"n":"hora_acto","l":"Hora","t":"t","w":4},{"n":"datos_exp","l":"Datos del expediente esponsalicio","t":"ta","w":12}]},{"t":"Datos del cónyuge (1)","campos":[{"n":"nombres_a","l":"Nombres","t":"t","w":6},{"n":"apellidos_a","l":"Apellidos","t":"t","w":6},{"n":"fecha_nac_a","l":"Fecha de nacimiento","t":"date","w":4},{"n":"edad_a","l":"Edad","t":"num","w":2},{"n":"cedula_a","l":"Cédula","t":"ced","w":4},{"n":"nacionalidad_a","l":"Nacionalidad","t":"t","w":4},{"n":"estado_civil_a","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"estado_nac_a","l":"Estado de nacimiento","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_nac_a","l":"Municipio - Parroquia (nac.)","t":"t","w":4},{"n":"pais_nac_a","l":"País de nacimiento","t":"t","w":4},{"n":"estado_res_a","l":"Estado de residencia","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_res_a","l":"Municipio - Parroquia (res.)","t":"t","w":4},{"n":"pais_res_a","l":"País de residencia","t":"t","w":4},{"n":"profesion_a","l":"Profesión","t":"t","w":6},{"n":"padre_a_nombres","l":"Padre · nombres","t":"t","w":6},{"n":"padre_a_cedula","l":"Padre · cédula","t":"ced","w":3},{"n":"padre_a_profesion","l":"Padre · profesión","t":"t","w":3},{"n":"padre_a_direccion","l":"Padre · dirección","t":"t","w":12},{"n":"madre_a_nombres","l":"Madre · nombres","t":"t","w":6},{"n":"madre_a_cedula","l":"Madre · cédula","t":"ced","w":3},{"n":"madre_a_profesion","l":"Madre · profesión","t":"t","w":3},{"n":"madre_a_direccion","l":"Madre · dirección","t":"t","w":12}]},{"t":"Datos de la cónyuge (2)","campos":[{"n":"nombres_b","l":"Nombres","t":"t","w":6},{"n":"apellidos_b","l":"Apellidos","t":"t","w":6},{"n":"fecha_nac_b","l":"Fecha de nacimiento","t":"date","w":4},{"n":"edad_b","l":"Edad","t":"num","w":2},{"n":"cedula_b","l":"Cédula","t":"ced","w":4},{"n":"nacionalidad_b","l":"Nacionalidad","t":"t","w":4},{"n":"estado_civil_b","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"estado_nac_b","l":"Estado de nacimiento","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_nac_b","l":"Municipio - Parroquia (nac.)","t":"t","w":4},{"n":"pais_nac_b","l":"País de nacimiento","t":"t","w":4},{"n":"estado_res_b","l":"Estado de residencia","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_res_b","l":"Municipio - Parroquia (res.)","t":"t","w":4},{"n":"pais_res_b","l":"País de residencia","t":"t","w":4},{"n":"profesion_b","l":"Profesión","t":"t","w":6},{"n":"padre_b_nombres","l":"Padre · nombres","t":"t","w":6},{"n":"padre_b_cedula","l":"Padre · cédula","t":"ced","w":3},{"n":"padre_b_profesion","l":"Padre · profesión","t":"t","w":3},{"n":"padre_b_direccion","l":"Padre · dirección","t":"t","w":12},{"n":"madre_b_nombres","l":"Madre · nombres","t":"t","w":6},{"n":"madre_b_cedula","l":"Madre · cédula","t":"ced","w":3},{"n":"madre_b_profesion","l":"Madre · profesión","t":"t","w":3},{"n":"madre_b_direccion","l":"Madre · dirección","t":"t","w":12}]},{"t":"Lectura de los Deberes y Derechos de los Cónyuges","texto":"Art. 137. Con el matrimonio, el marido y la mujer adquieren los mismos derechos y asumen los mismos deberes. Del Matrimonio deriva la obligación de los cónyuges de vivir juntos, guardarse fidelidad y socorrerse mutuamente. La mujer casada podrá usar el apellido del marido. Este Derecho subsiste aún despues de la disolución del matrimonio por causa de muerte, mientras no contraiga nuevas nupcias. La negativa de la mujer casada a usar el apellido del marido no se considerará, en ningún caso, como falta a los deberes que la Ley impone por efecto del matrimonio.\nArt. 138. El Juez de Primera Instancia en lo Civil, podrá por justa razón plenamente comprobada, autorizar a cualquiera de los cónyuges a separarse temporalmente de la residencia común.\nArt. 139. El marido y la mujer están obligados a contribuir en la medida de los recursos de cada uno, al cuidado y mantenimiento del hogar común, y a las cargas y demás gastos matrimoniales. En esta misma forma ambos cónyuges debe asistirse recíprocamente en la satisfacción de sus necesidades. Esta obligación cesa para el conyugue que se separe del hogar con justa causa. El cónyuge que dejare de cumplir, sin causa justificada, con estas obligaciones, podrá ser obligado judicialmente a ello, a solicitud de otro.\nArt. 140. Los cónyuges, de mútuo acuerdo, tomarán las decisiones relativas a la vida familiar, y fijarán el domicilio conyugal.\nArt. 140A. El domicilio conyugal será el lugar donde el marido y la mujer tengan establecida de mútuo acuerdo, su residencia. En caso de que los cónyuges tuvieren residencias separadas, de hecho o en virtud de la autorización judicial prevista en el artículo 138, el domicilio conyugal será el lugar de la última residencia común. El Cambio de residencia sólo podrá hacerse si ambos cónyuges estan de acuerdo en ello."},{"t":"Capitulaciones","campos":[{"n":"capi_tiene","l":"¿Existen capitulaciones matrimoniales?","t":"sel","w":4,"o":["Sí","No"]},{"n":"capi_datos","l":"Datos del registro","t":"ta","w":8},{"n":"capi_numero","l":"N°","t":"t","w":3},{"n":"capi_fecha","l":"Fecha","t":"date","w":3}]},{"t":"Apoderado(a)","campos":[{"n":"apo_nombres","l":"Nombres","t":"t","w":6},{"n":"apo_cedula","l":"Documento de identidad","t":"ced","w":6},{"n":"apo_poder","l":"Datos del poder / notaría","t":"ta","w":6},{"n":"apo_numero","l":"N°","t":"t","w":3},{"n":"apo_fecha","l":"Fecha","t":"date","w":3}]},{"t":"Aceptación expresa de los contrayentes","aceptacion":true,"campos":[{"n":"acepta_a","l":"¿El/la cónyuge (1) acepta al/la cónyuge (2) como su esposo(a)?","t":"sel","w":6,"o":["Sí","No"]},{"n":"acepta_b","l":"¿El/la cónyuge (2) acepta al/la cónyuge (1) como su esposo(a)?","t":"sel","w":6,"o":["Sí","No"]}]},{"t":"Hijos a legitimar","rep":{"key":"hijos","singular":"hijo","plural":"hijos","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":5},{"n":"documento","l":"Documento (cédula)","t":"ced","w":3},{"n":"edad","l":"Edad","t":"t","w":2},{"n":"acta","l":"Datos de acta","t":"t","w":2}]}},{"t":"Testigo 1","campos":[{"n":"t1_nombre","l":"Nombres y apellidos","t":"t","w":6},{"n":"t1_cedula","l":"Cédula","t":"ced","w":3},{"n":"t1_edad","l":"Edad","t":"num","w":3},{"n":"t1_profesion","l":"Profesión","t":"t","w":4},{"n":"t1_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"t1_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Testigo 2","campos":[{"n":"t2_nombre","l":"Nombres y apellidos","t":"t","w":6},{"n":"t2_cedula","l":"Cédula","t":"ced","w":3},{"n":"t2_edad","l":"Edad","t":"num","w":3},{"n":"t2_profesion","l":"Profesión","t":"t","w":4},{"n":"t2_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"t2_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Datos de inserción","campos":[{"n":"acta_insercion","l":"Acta N°","t":"t","w":4},{"n":"fecha_insercion","l":"Fecha","t":"date","w":4},{"n":"datos_autoridad","l":"Datos de la autoridad","t":"ta","w":12}]},{"t":"Observaciones","campos":[{"n":"observaciones","l":"Observaciones","t":"ta","w":12}]},{"t":"Primera Nota Marginal","campos":[{"n":"nota_marginal_1","l":"Anotación legal posterior (matrimonio, defunción, rectificación, reconocimiento, etc.)","t":"ta","w":12}]},{"t":"Segunda Nota Marginal","campos":[{"n":"nota_marginal_2","l":"Segunda anotación legal posterior","t":"ta","w":12}]}]},"defuncion":{"label":"Acta de Defunción","grupo":"Actos registrales","icon":"🕊️","num":true,"titular":["nombres_f","apellidos_f"],"ced":"cedula_f","secciones":[{"t":"Datos del acta","campos":[{"n":"fecha_acto","l":"Fecha del acta","t":"date","w":4},{"n":"tipo_acta","l":"Tipo","t":"sel","w":4,"o":["Defunción","Inserción de Defunción"]}]},{"t":"Datos del fallecido","campos":[{"n":"nombres_f","l":"Nombres","t":"t","w":4},{"n":"apellidos_f","l":"Apellidos","t":"t","w":4},{"n":"genero","l":"Género","t":"sel","w":4,"o":["Masculino","Femenino"]},{"n":"cedula_f","l":"Cédula","t":"ced","w":4},{"n":"fecha_nac_f","l":"Fecha de nacimiento","t":"date","w":4},{"n":"edad_f","l":"Edad","t":"num","w":2},{"n":"lugar_nac_f","l":"Lugar de nacimiento (ciudad-Estado)","t":"t","w":4},{"n":"profesion_f","l":"Profesión","t":"t","w":4},{"n":"nacionalidad_f","l":"Nacionalidad","t":"t","w":4},{"n":"comunidad_f","l":"Pueblo o comunidad indígena","t":"t","w":4},{"n":"direccion_f","l":"Residencia del fallecido","t":"ta","w":12}]},{"t":"Datos de la defunción","campos":[{"n":"fecha_def","l":"Fecha de defunción","t":"date","w":4},{"n":"hora_def","l":"Hora","t":"t","w":4},{"n":"lugar_def","l":"Lugar (localidad del deceso)","t":"t","w":4},{"n":"parroquia_def","l":"Parroquia","t":"t","w":4},{"n":"municipio_def","l":"Municipio","t":"t","w":4},{"n":"estado_def","l":"Estado","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"pais_def","l":"País","t":"t","w":4},{"n":"causas","l":"Causas de la muerte","t":"ta","w":12}]},{"t":"Certificado de defunción","campos":[{"n":"certificado_def","l":"Certificado N°","t":"t","w":3},{"n":"fecha_cert_def","l":"Fecha de expedición","t":"date","w":3},{"n":"registro_sanitario","l":"Datos del registro sanitario","t":"t","w":6},{"n":"autoridad_cert","l":"Autoridad que lo expide","t":"t","w":6},{"n":"autoridad_cedula","l":"Cédula de la autoridad","t":"ced","w":3},{"n":"dependencia","l":"Dependencia de salud","t":"t","w":3}]},{"t":"Datos familiares (cónyuge)","campos":[{"n":"con_nombres","l":"Nombres del cónyuge / pareja","t":"t","w":6},{"n":"con_cedula","l":"Cédula","t":"ced","w":3},{"n":"con_vive","l":"¿Vive?","t":"sel","w":3,"o":["Sí","No"]},{"n":"con_profesion","l":"Profesión","t":"t","w":4},{"n":"con_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"con_direccion","l":"Residencia","t":"t","w":4}]},{"t":"Descendientes (hijos del fallecido)","rep":{"key":"descendientes","singular":"descendiente","plural":"descendientes","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":5},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"edad","l":"Edad","t":"num","w":2},{"n":"vive","l":"¿Vive?","t":"sel","w":2,"o":["Sí","No"]}]}},{"t":"Padres del fallecido","campos":[{"n":"padre_nombres","l":"Padre · nombres","t":"t","w":6},{"n":"padre_cedula","l":"Padre · cédula","t":"ced","w":3},{"n":"padre_profesion","l":"Padre · profesión","t":"t","w":3},{"n":"padre_lugar_nac","l":"Padre · lugar de nac.","t":"t","w":4},{"n":"padre_vive","l":"Padre · ¿vive?","t":"sel","w":2,"o":["Sí","No"]},{"n":"madre_nombres","l":"Madre · nombres","t":"t","w":6},{"n":"madre_cedula","l":"Madre · cédula","t":"ced","w":3},{"n":"madre_profesion","l":"Madre · profesión","t":"t","w":3},{"n":"madre_lugar_nac","l":"Madre · lugar de nac.","t":"t","w":4},{"n":"madre_vive","l":"Madre · ¿vive?","t":"sel","w":2,"o":["Sí","No"]}]},{"t":"Declarante / exponente","campos":[{"n":"dec_nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"dec_cedula","l":"Cédula","t":"ced","w":3},{"n":"dec_edad","l":"Edad","t":"num","w":3},{"n":"dec_profesion","l":"Profesión","t":"t","w":4},{"n":"dec_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"dec_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Datos de inserción","campos":[{"n":"acta_insercion","l":"Acta N°","t":"t","w":4},{"n":"fecha_insercion","l":"Fecha","t":"date","w":4},{"n":"datos_autoridad","l":"Datos de la autoridad","t":"ta","w":12}]},{"t":"Datos por decisión judicial","campos":[{"n":"tribunal","l":"Tribunal","t":"t","w":6},{"n":"sentencia","l":"N° de sentencia","t":"t","w":3},{"n":"juez","l":"Nombres del juez(a)","t":"t","w":3},{"n":"sentencia_fecha","l":"Fecha","t":"date","w":4},{"n":"extracto_sentencia","l":"Extracto de la sentencia","t":"ta","w":12}]},{"t":"Testigo 1","campos":[{"n":"t1_nombre","l":"Nombres y apellidos","t":"t","w":6},{"n":"t1_cedula","l":"Cédula","t":"ced","w":3},{"n":"t1_edad","l":"Edad","t":"num","w":3},{"n":"t1_profesion","l":"Profesión","t":"t","w":4},{"n":"t1_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"t1_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Testigo 2","campos":[{"n":"t2_nombre","l":"Nombres y apellidos","t":"t","w":6},{"n":"t2_cedula","l":"Cédula","t":"ced","w":3},{"n":"t2_edad","l":"Edad","t":"num","w":3},{"n":"t2_profesion","l":"Profesión","t":"t","w":4},{"n":"t2_nacionalidad","l":"Nacionalidad","t":"t","w":4},{"n":"t2_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Observaciones","campos":[{"n":"observaciones","l":"Observaciones","t":"ta","w":12}]},{"t":"Primera Nota Marginal","campos":[{"n":"nota_marginal_1","l":"Anotación legal posterior (matrimonio, defunción, rectificación, reconocimiento, etc.)","t":"ta","w":12}]},{"t":"Segunda Nota Marginal","campos":[{"n":"nota_marginal_2","l":"Segunda anotación legal posterior","t":"ta","w":12}]}]},"union_estable":{"label":"Unión Estable de Hecho","grupo":"Actos registrales","icon":"🤝","num":true,"titular":["nombres_a","nombres_b"],"ced":"cedula_a","secciones":[{"t":"Datos del acta","campos":[{"n":"fecha_acto","l":"Fecha del acto","t":"date","w":4}]},{"t":"Datos del ciudadano","campos":[{"n":"nombres_a","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_a","l":"Cédula","t":"ced","w":3},{"n":"fecha_nac_a","l":"Fecha de nacimiento","t":"date","w":3},{"n":"nacionalidad_a","l":"Nacionalidad","t":"t","w":4},{"n":"estado_civil_a","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion_a","l":"Profesión","t":"t","w":4},{"n":"estado_a","l":"Estado","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_a","l":"Municipio","t":"t","w":4},{"n":"parroquia_a","l":"Parroquia","t":"t","w":4},{"n":"direccion_a","l":"Dirección","t":"ta","w":12},{"n":"padre_a_nombres","l":"Padre · nombres","t":"t","w":6},{"n":"padre_a_cedula","l":"Padre · cédula","t":"ced","w":6},{"n":"madre_a_nombres","l":"Madre · nombres","t":"t","w":6},{"n":"madre_a_cedula","l":"Madre · cédula","t":"ced","w":6}]},{"t":"Datos de la ciudadana","campos":[{"n":"nombres_b","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_b","l":"Cédula","t":"ced","w":3},{"n":"fecha_nac_b","l":"Fecha de nacimiento","t":"date","w":3},{"n":"nacionalidad_b","l":"Nacionalidad","t":"t","w":4},{"n":"estado_civil_b","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion_b","l":"Profesión","t":"t","w":4},{"n":"estado_b","l":"Estado","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_b","l":"Municipio","t":"t","w":4},{"n":"parroquia_b","l":"Parroquia","t":"t","w":4},{"n":"direccion_b","l":"Dirección","t":"ta","w":12},{"n":"padre_b_nombres","l":"Padre · nombres","t":"t","w":6},{"n":"padre_b_cedula","l":"Padre · cédula","t":"ced","w":6},{"n":"madre_b_nombres","l":"Madre · nombres","t":"t","w":6},{"n":"madre_b_cedula","l":"Madre · cédula","t":"ced","w":6}]},{"t":"Datos conjuntos","campos":[{"n":"tiempo_valor","l":"Tiempo de unión","t":"num","w":4},{"n":"tiempo_unidad","l":"Unidad","t":"sel","w":4,"o":["Días","Meses","Años"]},{"n":"tiempo_convivencia","l":"Tiempo (texto libre)","t":"t","w":4}]},{"t":"Hijos","rep":{"key":"hijos","singular":"hijo","plural":"hijos","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"edad","l":"Edad","t":"num","w":3}]}},{"t":"Primer testigo","campos":[{"n":"t1_nombre","l":"Nombres","t":"t","w":6},{"n":"t1_cedula","l":"Cédula","t":"ced","w":6},{"n":"t1_nacionalidad","l":"Nacionalidad","t":"t","w":6},{"n":"t1_profesion","l":"Profesión","t":"t","w":6},{"n":"t1_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Segundo testigo","campos":[{"n":"t2_nombre","l":"Nombres","t":"t","w":6},{"n":"t2_cedula","l":"Cédula","t":"ced","w":6},{"n":"t2_nacionalidad","l":"Nacionalidad","t":"t","w":6},{"n":"t2_profesion","l":"Profesión","t":"t","w":6},{"n":"t2_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Primera Nota Marginal","campos":[{"n":"nota_marginal_1","l":"Anotación legal posterior (matrimonio, defunción, rectificación, reconocimiento, etc.)","t":"ta","w":12}]},{"t":"Segunda Nota Marginal","campos":[{"n":"nota_marginal_2","l":"Segunda anotación legal posterior","t":"ta","w":12}]}]},"disolucion":{"label":"Disolución de Unión Estable","grupo":"Actos registrales","icon":"📄","num":true,"titular":["nombres_a","nombres_b"],"ced":"cedula_a","secciones":[{"t":"Datos","campos":[{"n":"tipo_dis","l":"Tipo","t":"sel","w":6,"o":["Voluntad Conjunta","Voluntad Unilateral"]},{"n":"fecha_acto","l":"Fecha del acto","t":"date","w":6}]},{"t":"Datos del ciudadano / declarante","campos":[{"n":"nombres_a","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_a","l":"Cédula","t":"ced","w":3},{"n":"fecha_nac_a","l":"Fecha de nacimiento","t":"date","w":3},{"n":"nacionalidad_a","l":"Nacionalidad","t":"t","w":4},{"n":"estado_civil_a","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion_a","l":"Profesión","t":"t","w":4},{"n":"estado_a","l":"Estado","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_a","l":"Municipio","t":"t","w":4},{"n":"parroquia_a","l":"Parroquia","t":"t","w":4},{"n":"direccion_a","l":"Dirección","t":"ta","w":12},{"n":"padre_a_nombres","l":"Padre · nombres","t":"t","w":6},{"n":"padre_a_cedula","l":"Padre · cédula","t":"ced","w":6},{"n":"madre_a_nombres","l":"Madre · nombres","t":"t","w":6},{"n":"madre_a_cedula","l":"Madre · cédula","t":"ced","w":6}]},{"t":"Datos de la ciudadana (si es conjunta)","campos":[{"n":"nombres_b","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_b","l":"Cédula","t":"ced","w":3},{"n":"fecha_nac_b","l":"Fecha de nacimiento","t":"date","w":3},{"n":"nacionalidad_b","l":"Nacionalidad","t":"t","w":4},{"n":"estado_civil_b","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion_b","l":"Profesión","t":"t","w":4},{"n":"estado_b","l":"Estado","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_b","l":"Municipio","t":"t","w":4},{"n":"parroquia_b","l":"Parroquia","t":"t","w":4},{"n":"direccion_b","l":"Dirección","t":"ta","w":12},{"n":"padre_b_nombres","l":"Padre · nombres","t":"t","w":6},{"n":"padre_b_cedula","l":"Padre · cédula","t":"ced","w":6},{"n":"madre_b_nombres","l":"Madre · nombres","t":"t","w":6},{"n":"madre_b_cedula","l":"Madre · cédula","t":"ced","w":6}]},{"t":"Acta original de la unión","campos":[{"n":"acta_original","l":"N° de acta","t":"t","w":4},{"n":"fecha_original","l":"Fecha","t":"date","w":4},{"n":"oficina_original","l":"Oficina de registro","t":"t","w":4}]},{"t":"Primer testigo","campos":[{"n":"t1_nombre","l":"Nombres","t":"t","w":6},{"n":"t1_cedula","l":"Cédula","t":"ced","w":6},{"n":"t1_nacionalidad","l":"Nacionalidad","t":"t","w":6},{"n":"t1_profesion","l":"Profesión","t":"t","w":6},{"n":"t1_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Segundo testigo","campos":[{"n":"t2_nombre","l":"Nombres","t":"t","w":6},{"n":"t2_cedula","l":"Cédula","t":"ced","w":6},{"n":"t2_nacionalidad","l":"Nacionalidad","t":"t","w":6},{"n":"t2_profesion","l":"Profesión","t":"t","w":6},{"n":"t2_direccion","l":"Dirección","t":"ta","w":12}]},{"t":"Primera Nota Marginal","campos":[{"n":"nota_marginal_1","l":"Anotación legal posterior (matrimonio, defunción, rectificación, reconocimiento, etc.)","t":"ta","w":12}]},{"t":"Segunda Nota Marginal","campos":[{"n":"nota_marginal_2","l":"Segunda anotación legal posterior","t":"ta","w":12}]}]},"naturalizacion":{"label":"Acta de Naturalización","grupo":"Actos registrales","icon":"🌐","num":true,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del acta","campos":[{"n":"fecha_acto","l":"Fecha","t":"date","w":6}]},{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula (E-)","t":"ced","w":3},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":3},{"n":"lugar_nac","l":"Lugar de nacimiento","t":"t","w":6},{"n":"nacionalidad","l":"Nacionalidad de origen","t":"t","w":3},{"n":"sexo","l":"Sexo","t":"sel","w":3,"o":["Masculino","Femenino"]},{"n":"estado_civil","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion","l":"Profesión","t":"t","w":4},{"n":"condicion","l":"Condición de entrada (condición, lugar, fecha)","t":"t","w":4},{"n":"padres","l":"Padres","t":"t","w":6},{"n":"tiempo_res","l":"Tiempo de residencia","t":"t","w":3},{"n":"residencia","l":"Residencia","t":"t","w":3},{"n":"parroquia","l":"Parroquia","t":"t","w":4},{"n":"municipio","l":"Municipio","t":"t","w":4},{"n":"estado","l":"Estado","t":"sel","w":4,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]}]},{"t":"Datos del cónyuge","campos":[{"n":"con_nombres","l":"Nombres","t":"t","w":6},{"n":"con_cedula","l":"Cédula (CJ)","t":"ced","w":3},{"n":"con_nacionalidad","l":"Nacionalidad","t":"t","w":3},{"n":"hijos","l":"Hijos","t":"ta","w":12}]}]},"fe_vida":{"label":"Fe de Vida","grupo":"Constancias","icon":"📝","num":false,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del interesado(a)","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":3},{"n":"nacionalidad","l":"Nacionalidad","t":"sel","w":4,"o":["Venezolano","Venezolana","Extranjero","Extranjera","Nacionalizado","Nacionalizada"]},{"n":"estado_civil","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion","l":"Profesión","t":"t","w":4},{"n":"direccion","l":"Dirección","t":"ta","w":12}]}]},"residencia":{"label":"Carta de Residencia","grupo":"Constancias","icon":"🏠","num":false,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"sexo","l":"Sexo","t":"sel","w":3,"o":["Masculino","Femenino"]},{"n":"nacionalidad","l":"Nacionalidad","t":"sel","w":3,"o":["Venezolano","Venezolana","Extranjero","Extranjera","Nacionalizado","Nacionalizada"]}]},{"t":"Declaración de residencia","campos":[{"n":"desde","l":"Habita desde (mes y año)","t":"t","w":4},{"n":"organo","l":"Expedido por / avala","t":"sel","w":5,"o":["Consejo Comunal","Junta de Condominio","Asociación de Vecinos","Junta Parroquial"]},{"n":"tiempo","l":"Tiempo","t":"num","w":1},{"n":"indicador","l":"Unidad","t":"sel","w":2,"o":["Meses","Años"]}]},{"t":"Dirección (formato ONRC)","campos":[{"n":"estado_res","l":"Estado","t":"sel","w":3,"o":["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"]},{"n":"municipio_res","l":"Municipio","t":"t","w":3},{"n":"parroquia_res","l":"Parroquia","t":"t","w":3},{"n":"urbanizacion","l":"Urbanización / sector","t":"t","w":3},{"n":"avenida","l":"Avenida / calle","t":"t","w":4},{"n":"edificio","l":"Edificio / casa","t":"t","w":2},{"n":"piso","l":"Piso","t":"t","w":2},{"n":"apartamento","l":"Apto / N°","t":"t","w":2},{"n":"telefono","l":"Teléfono","t":"t","w":4},{"n":"correo","l":"Correo electrónico","t":"t","w":4},{"n":"direccion","l":"Dirección (resumen para la constancia)","t":"ta","w":12}]},{"t":"Documento consignado","campos":[{"n":"doc_tipo","l":"Documento consignado","t":"sel","w":6,"o":["Fotocopia del RIF vigente","Carta de residencia (Consejo Comunal / Junta / Asociación)","Recibo de pago de un servicio","Otro documento"]},{"n":"doc_detalle","l":"Detalle del documento","t":"t","w":6}]}]},"solteria":{"label":"Carta de Soltería","grupo":"Constancias","icon":"💐","num":false,"titular":["nombres","apellidos"],"ced":"cedula","secciones":[{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres","t":"t","w":6},{"n":"apellidos","l":"Apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":4},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":4},{"n":"profesion","l":"Profesión","t":"t","w":4},{"n":"direccion","l":"Dirección","t":"ta","w":12}]}]},"buena_conducta":{"label":"Carta de Buena Conducta","grupo":"Constancias","icon":"⭐","num":false,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":3},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"estado_civil","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion","l":"Profesión","t":"t","w":4},{"n":"organo","l":"Expedido por","t":"sel","w":4,"o":["Consejo Comunal","Junta de Condominio","Asociación de Vecinos","Junta Parroquial"]},{"n":"direccion","l":"Dirección","t":"ta","w":12}]}]},"perdida":{"label":"Pérdida de Documentos","grupo":"Constancias","icon":"❓","num":false,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"nacionalidad","l":"Nacionalidad","t":"sel","w":3,"o":["Venezolano","Venezolana","Extranjero","Extranjera","Nacionalizado","Nacionalizada"]},{"n":"estado_civil","l":"Estado civil","t":"sel","w":4,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"profesion","l":"Profesión","t":"t","w":4},{"n":"direccion","l":"Dirección","t":"ta","w":4},{"n":"documentos","l":"Documentos extraviados","t":"ta","w":12}]}]},"manutencion":{"label":"Constancia de Manutención","grupo":"Constancias","icon":"🍼","num":false,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":3},{"n":"nacionalidad","l":"Nacionalidad","t":"sel","w":3,"o":["Venezolano","Venezolana","Extranjero","Extranjera","Nacionalizado","Nacionalizada"]},{"n":"estado_civil","l":"Estado civil","t":"sel","w":3,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]}]},{"t":"Datos del tutor(a)","campos":[{"n":"nombres_t","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_t","l":"Cédula","t":"ced","w":6}]}]},"expensa":{"label":"Constancia de Expensa","grupo":"Constancias","icon":"💰","num":false,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"estado_civil","l":"Estado civil","t":"sel","w":3,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":4}]},{"t":"Datos del tutor(a)","campos":[{"n":"nombres_t","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_t","l":"Cédula","t":"ced","w":3},{"n":"estado_civil_t","l":"Estado civil","t":"sel","w":3,"o":["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"]},{"n":"fecha_nac_t","l":"Fecha de nacimiento","t":"date","w":4}]}]},"viudez":{"label":"Constancia de Viudez","grupo":"Constancias","icon":"🖤","num":false,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del solicitante","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula","l":"Cédula","t":"ced","w":3},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":3},{"n":"profesion","l":"Profesión","t":"t","w":4},{"n":"viudo_desde","l":"Viudo(a) desde","t":"t","w":4},{"n":"direccion","l":"Dirección","t":"ta","w":4}]},{"t":"Datos del difunto esposo(a)","campos":[{"n":"nombres2","l":"Nombres y apellidos","t":"t","w":6},{"n":"cedula_f","l":"Cédula","t":"ced","w":3},{"n":"fecha_mat","l":"Fecha de matrimonio","t":"date","w":3},{"n":"direccion_fallecimiento","l":"Dirección de fallecimiento","t":"ta","w":12}]}]},"permiso":{"label":"Permiso de Cementerio","grupo":"Permisos","icon":"⚰️","num":true,"titular":["nombres"],"ced":"cedula","secciones":[{"t":"Datos del permiso","campos":[{"n":"tipo_permiso","l":"Tipo","t":"sel","w":4,"o":["Enterramiento","Cremación","Exhumación"]},{"n":"permiso_numero","l":"Permiso N°","t":"t","w":4},{"n":"certificado","l":"N° certificado de defunción","t":"t","w":4}]},{"t":"Datos del difunto(a)","campos":[{"n":"nombres","l":"Nombres y apellidos","t":"t","w":6},{"n":"fecha_nac","l":"Fecha de nacimiento","t":"date","w":3},{"n":"nacionalidad","l":"Nacionalidad","t":"sel","w":3,"o":["Venezolano","Venezolana","Extranjero","Extranjera","Nacionalizado","Nacionalizada"]},{"n":"cedula","l":"Cédula","t":"ced","w":4},{"n":"fecha_def","l":"Fecha de defunción","t":"date","w":4},{"n":"cementerio","l":"Cementerio (solo enterramiento)","t":"sel","w":4,"o":["Parque Valles del Tuy","Cementerio Municipal"]},{"n":"direccion","l":"Dirección del deceso","t":"ta","w":8},{"n":"consecuencias","l":"Consecuencias / causa","t":"ta","w":8},{"n":"medico","l":"Médico","t":"t","w":4}]}]},"copia_acta":{"label":"Entrega de Copias","grupo":"Otros","icon":"🖨️","num":false,"titular":["solicitante"],"ced":"cedula_solicitante","secciones":[{"t":"Datos de la copia","campos":[{"n":"tipo_copia","l":"Tipo de acta","t":"sel","w":4,"o":["Nacimiento","Matrimonio","Defunción"]},{"n":"n_acta","l":"N° de acta","t":"t","w":4},{"n":"ano_acta","l":"Año","t":"num","w":4},{"n":"copias","l":"N° de copias","t":"num","w":4},{"n":"solicitante","l":"Solicitante","t":"t","w":4},{"n":"cedula_solicitante","l":"Cédula del solicitante","t":"ced","w":4}]}]}};
+/* Formularios completos de nacionalidad: los Modelos I y II proceden de los
+   formularios PHP; III y IV completan las vías constitucionales que el selector
+   antiguo mostraba, pero enlazaba erróneamente al Modelo I. */
+const NAT_MODELOS = {
+  "Modelo I · Art. 33.1 CRBV": {
+    articulo: "Artículo 33, numeral 1 de la CRBV · Carta de naturaleza",
+    declaracion: "Solicitud de nacionalidad venezolana mediante carta de naturaleza y declaración jurada de cumplir y respetar la Constitución y las leyes de la República.",
+  },
+  "Modelo II · Art. 33.2 CRBV": {
+    articulo: "Artículo 33, numeral 2 de la CRBV · Matrimonio con venezolano(a)",
+    declaracion: "Declaración de voluntad de adquirir la nacionalidad venezolana por matrimonio con venezolano(a), transcurrido el lapso constitucional.",
+  },
+  "Modelo III · Art. 33.3 CRBV": {
+    articulo: "Artículo 33, numeral 3 de la CRBV · Menor al naturalizarse padre o madre",
+    declaracion: "Declaración de voluntad de la persona que era menor de edad al naturalizarse el padre o la madre que ejercía la patria potestad.",
+  },
+  "Modelo IV · Art. 32.4 CRBV": {
+    articulo: "Artículo 32, numeral 4 de la CRBV · Acogimiento de nacionalidad por progenitor venezolano por naturalización",
+    declaracion: "Declaración de voluntad de acogerse a la nacionalidad venezolana por ser hijo(a) de padre o madre venezolano(a) por naturalización, con verificación de residencia y edad.",
+  },
+};
+TRAMITES.naturalizacion = {
+  label: "Acta de Naturalización", grupo: "Actos registrales", icon: "🌐", num: true,
+  titular: ["nombres", "apellidos"], ced: "cedula",
+  secciones: [
+    { t: "Tipo y fundamento legal", campos: [
+      { n: "tipo_naturalizacion", l: "Tipo de naturalización / acogimiento", t: "sel", w: 6, o: Object.keys(NAT_MODELOS) },
+      { n: "fundamento_legal", l: "Fundamento legal aplicable", t: "t", w: 6 },
+      { n: "declaracion_legal", l: "Declaración correspondiente al modelo", t: "ta", w: 12 },
+    ]},
+    { t: "Datos del acta", campos: [
+      { n: "fecha_acto", l: "Fecha del acto", t: "date", w: 4 },
+      { n: "lugar_acto", l: "Lugar del acto", t: "t", w: 8 },
+    ]},
+    { t: "Datos completos del solicitante", campos: [
+      { n: "nombres", l: "Nombres", t: "t", w: 6 }, { n: "apellidos", l: "Apellidos", t: "t", w: 6 },
+      { n: "cedula", l: "Cédula / documento (E-)", t: "ced", w: 4 }, { n: "fecha_nac", l: "Fecha de nacimiento", t: "date", w: 4 },
+      { n: "sexo", l: "Sexo", t: "sel", w: 4, o: ["Masculino", "Femenino"] },
+      { n: "lugar_nac", l: "Lugar de nacimiento", t: "t", w: 4 }, { n: "pais_nac", l: "País de nacimiento", t: "t", w: 4 },
+      { n: "nacionalidad", l: "Nacionalidad de origen", t: "t", w: 4 },
+      { n: "estado_civil", l: "Estado civil", t: "sel", w: 4, o: ECIV }, { n: "profesion", l: "Profesión u ocupación", t: "t", w: 4 },
+      { n: "condicion", l: "Condición de entrada (condición, lugar y fecha)", t: "ta", w: 8 },
+      { n: "fecha_ingreso", l: "Fecha de ingreso al país", t: "date", w: 4 },
+      { n: "padres", l: "Nombres de padre y madre", t: "t", w: 6 }, { n: "tiempo_res", l: "Años de residencia en Venezuela", t: "t", w: 6 },
+      { n: "residencia", l: "Dirección de residencia", t: "ta", w: 12 },
+      { n: "parroquia", l: "Parroquia", t: "t", w: 4 }, { n: "municipio", l: "Municipio", t: "t", w: 4 },
+      { n: "estado", l: "Estado", t: "sel", w: 4, o: EST },
+    ]},
+    { t: "Datos del cónyuge venezolano(a) · Modelo II", modelos: ["Modelo II"], campos: [
+      { n: "con_nombres", l: "Nombres y apellidos", t: "t", w: 6 }, { n: "con_tipo_doc", l: "Tipo de documento", t: "sel", w: 3, o: ["C.I", "Pasaporte", "Otro"] },
+      { n: "con_cedula", l: "Número de documento", t: "ced", w: 3 }, { n: "con_nacionalidad", l: "Nacionalidad", t: "t", w: 4 },
+      { n: "fecha_matrimonio", l: "Fecha de matrimonio", t: "date", w: 4 }, { n: "datos_matrimonio", l: "Acta y oficina del matrimonio", t: "t", w: 4 },
+      { n: "hijos", l: "Hijos de la unión", t: "ta", w: 12 },
+    ]},
+    { t: "Padre o madre naturalizado(a) · Modelo III", modelos: ["Modelo III"], campos: [
+      { n: "progenitor_nombres", l: "Nombres y apellidos", t: "t", w: 6 }, { n: "progenitor_cedula", l: "Cédula", t: "ced", w: 3 },
+      { n: "progenitor_parentesco", l: "Parentesco", t: "sel", w: 3, o: ["Padre", "Madre"] },
+      { n: "progenitor_naturalizacion", l: "Carta / acta de naturalización", t: "t", w: 6 }, { n: "progenitor_fecha", l: "Fecha de naturalización", t: "date", w: 3 },
+      { n: "patria_potestad", l: "Datos de patria potestad", t: "ta", w: 12 },
+    ]},
+    { t: "Progenitor venezolano por naturalización · Modelo IV", modelos: ["Modelo IV"], campos: [
+      { n: "progenitor_nombres", l: "Nombres y apellidos", t: "t", w: 6 }, { n: "progenitor_cedula", l: "Cédula", t: "ced", w: 3 },
+      { n: "progenitor_parentesco", l: "Parentesco", t: "sel", w: 3, o: ["Padre", "Madre"] },
+      { n: "progenitor_naturalizacion", l: "Datos de naturalización del progenitor", t: "t", w: 6 },
+      { n: "fecha_residencia_venezuela", l: "Fecha en que fijó residencia en Venezuela", t: "date", w: 6 },
+    ]},
+    { t: "Datos de la madre/padre del solicitante", campos: [
+      { n: "nombres_m", l: "Nombres y apellidos", t: "t", w: 12 },
+    ]},
+    { t: "Testigo 1", campos: [
+      { n: "t1_nombre", l: "Nombres y apellidos", t: "t", w: 6 }, { n: "t1_tipo_doc", l: "Tipo de documento", t: "sel", w: 3, o: ["C.I", "Pasaporte"] },
+      { n: "t1_cedula", l: "Número de documento", t: "ced", w: 3 }, { n: "t1_profesion", l: "Profesión", t: "t", w: 4 },
+      { n: "t1_nacionalidad", l: "Nacionalidad", t: "t", w: 4 }, { n: "t1_direccion", l: "Dirección", t: "ta", w: 12 },
+      { n: "t1_parroquia", l: "Parroquia", t: "t", w: 4 }, { n: "t1_municipio", l: "Municipio", t: "t", w: 4 }, { n: "t1_estado", l: "Estado", t: "sel", w: 4, o: EST },
+    ]},
+    { t: "Testigo 2", campos: [
+      { n: "t2_nombre", l: "Nombres y apellidos", t: "t", w: 6 }, { n: "t2_tipo_doc", l: "Tipo de documento", t: "sel", w: 3, o: ["C.I", "Pasaporte"] },
+      { n: "t2_cedula", l: "Número de documento", t: "ced", w: 3 }, { n: "t2_profesion", l: "Profesión", t: "t", w: 4 },
+      { n: "t2_nacionalidad", l: "Nacionalidad", t: "t", w: 4 }, { n: "t2_direccion", l: "Dirección", t: "ta", w: 12 },
+      { n: "t2_parroquia", l: "Parroquia", t: "t", w: 4 }, { n: "t2_municipio", l: "Municipio", t: "t", w: 4 }, { n: "t2_estado", l: "Estado", t: "sel", w: 4, o: EST },
+    ]},
+    { t: "Observaciones", campos: [{ n: "observaciones", l: "Observaciones", t: "ta", w: 12 }] },
+  ],
+};
+
 const TIPOS_HISTORICOS = {
   mudanza: "Permiso de Mudanza",
   asistencia: "Constancia de Asistencia",
@@ -314,6 +411,7 @@ function construirNav() {
     ["registros", "📋 Trámites y actas", "Consultas"],
     ["reportes", "📊 Reportes", "Consultas"],
     ["centro-reportes", "🧭 Centro de Reportes", "Consultas"],
+    ["asistente-ia", "✨ Asistente IA", "Consultas"],
     ["actividad", "🕒 Actividad", "Control"],
   ];
   if (esAdmin()) { items.push(["usuarios", "👥 Usuarios", "Control"]); items.push(["config", "⚙️ Configuración", "Control"]); }
@@ -364,6 +462,7 @@ function router() {
   else if (v === "registros") vRegistros();
   else if (v === "reportes") vReportes();
   else if (v === "centro-reportes") vCentroReportes();
+  else if (v === "asistente-ia") vAsistenteIA();
   else if (v === "legacy") vLegacy();
   else if (v === "actividad") vActividad();
   else if (v === "usuarios") esAdmin() ? vUsuarios() : vInicio();
@@ -491,6 +590,7 @@ const MODELOS_REPORTE = [
 ];
 let CENTRO_ESTADO = null;
 let CENTRO_FUNCIONARIOS = [];
+const CENTRO_POR_PAGINA = 100;
 const fechaLegible = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString("es-VE") : "—";
 const numeroVE = (n) => Number(n || 0).toLocaleString("es-VE");
 
@@ -546,7 +646,7 @@ async function cargarCentroReportes(modelo) {
     p_desde: f.desde, p_hasta: f.hasta, p_tipo: f.tipo, p_funcionario: f.funcionario, p_origen: f.origen,
   });
   if (error || !data) { $("crResultado").innerHTML = `<div class="card"><div class="empty">No se pudo generar el reporte. ${esc(error && error.message || "")}</div></div>`; return; }
-  CENTRO_ESTADO = { filtros: f, data };
+  CENTRO_ESTADO = { filtros: f, data, pagina: 1 };
   if (!CENTRO_FUNCIONARIOS.length) CENTRO_FUNCIONARIOS = Object.keys(data.por_funcionario || {}).filter(x => x && x !== "Sin funcionario").sort();
   const sel = $("crFunc");
   if (sel && sel.options.length <= 1 && CENTRO_FUNCIONARIOS.length) sel.innerHTML = `<option value="">Todos los funcionarios</option>` + CENTRO_FUNCIONARIOS.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
@@ -563,19 +663,53 @@ function pintarCentroReportes(f, data) {
   if (f.modelo === "copias") { desglose = data.copias_por_tipo || {}; tituloDesglose = "Copias entregadas por tipo de acta"; }
   if (["nacimientos", "matrimonios", "uniones"].includes(f.modelo)) { desglose = data.por_mes || {}; tituloDesglose = "Registros por mes"; }
   const filasDesglose = Object.entries(desglose).sort((a, b) => Number(b[1]) - Number(a[1])).map(([k, v]) => `<tr><td>${esc((data.por_tipo || {})[k] != null ? tipoLabel(k) : k)}</td><td style="text-align:right;font-weight:800">${numeroVE(v)}</td></tr>`).join("");
-  const preview = data.preview || [];
-  const filas = preview.map(r => `<tr><td>${fechaLegible(r.fecha)}</td><td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td><td>${r.numero_acta ? esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : "—"}</td><td>${esc(r.owner_usuario || "—")}</td><td><button class="btn o sm" data-crver="${r.id}">Ver</button></td></tr>`).join("");
   $("crResultado").innerHTML = `<div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><b style="font-size:17px;color:var(--navy)">${esc(f.titulo)}</b><div class="sub">${fechaLegible(f.desde)} — ${fechaLegible(f.hasta)}${f.tipo ? " · " + esc(tipoLabel(f.tipo)) : ""}${f.funcionario ? " · " + esc(f.funcionario) : ""}</div></div><span class="badge mine">Datos verificados</span></div>
     <div class="stats" style="margin-top:16px"><div class="stat"><b>${numeroVE(data.total)}</b><span>Total del período</span></div><div class="stat"><b>${numeroVE(data.nuevos)}</b><span>Registros nuevos</span></div><div class="stat"><b>${numeroVE(data.archivo)}</b><span>Archivo histórico</span></div><div class="stat"><b>${Object.keys(data.por_tipo || {}).length}</b><span>Tipos encontrados</span></div></div></div>
     <div class="card"><b style="font-size:15px;color:var(--navy)">Tendencia mensual</b><div class="rep-chart">${chart}</div></div>
     <div style="display:grid;grid-template-columns:minmax(260px,.8fr) minmax(460px,1.6fr);gap:16px;align-items:start" class="cr-panels">
       <div class="card"><b style="font-size:15px;color:var(--navy)">${esc(tituloDesglose)}</b><div style="overflow:auto;margin-top:11px"><table><thead><tr><th>Concepto</th><th style="text-align:right">Cantidad</th></tr></thead><tbody>${filasDesglose || '<tr><td colspan="2">Sin datos</td></tr>'}</tbody></table></div></div>
-      <div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b style="font-size:15px;color:var(--navy)">Vista previa</b><span class="sub">Primeros ${Math.min(100, preview.length)} de ${numeroVE(data.total)}</span></div><div style="overflow:auto;max-height:520px;margin-top:11px"><table><thead><tr><th>Fecha</th><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N°/Año</th><th>Funcionario</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="7">Sin registros</td></tr>'}</tbody></table></div></div>
+      <div class="card"><div id="crVista"></div></div>
     </div>
     <div class="card"><b style="font-size:15px;color:var(--navy)">Exportar</b><div class="sub">El PDF ofrece un informe ejecutivo; el CSV conserva el detalle completo para análisis.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" id="crPdf" ${Number(data.total) ? "" : "disabled"}>📄 Descargar PDF</button><button class="btn o" id="crCsv" ${Number(data.total) ? "" : "disabled"}>📥 Exportar detalle CSV</button></div></div>`;
-  $("crResultado").querySelectorAll("[data-crver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.crver));
+  pintarPaginaCentro(data.preview || [], 1);
   if ($("crPdf")) $("crPdf").onclick = () => descargarCentroPDF();
   if ($("crCsv")) $("crCsv").onclick = () => descargarCentroCSV();
+}
+
+function pintarPaginaCentro(filas, pagina) {
+  const cont = $("crVista"); if (!cont || !CENTRO_ESTADO) return;
+  const total = Number(CENTRO_ESTADO.data.total || 0);
+  const paginas = Math.max(1, Math.ceil(total / CENTRO_POR_PAGINA));
+  const inicio = total ? (pagina - 1) * CENTRO_POR_PAGINA + 1 : 0;
+  const fin = Math.min(pagina * CENTRO_POR_PAGINA, total);
+  const rows = filas.map(r => `<tr><td>${fechaLegible(r.fecha)}</td><td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td><td>${r.numero_acta ? esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : "—"}</td><td>${esc(r.owner_usuario || "—")}</td><td><button class="btn o sm" data-crver="${r.id}">Ver</button></td></tr>`).join("");
+  cont.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:15px;color:var(--navy)">Vista previa</b><span class="sub">Registros ${numeroVE(inicio)}–${numeroVE(fin)} de ${numeroVE(total)}</span></div>
+    <div style="overflow:auto;max-height:520px;margin-top:11px"><table><thead><tr><th>Fecha</th><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N°/Año</th><th>Funcionario</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7">Sin registros</td></tr>'}</tbody></table></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn o sm" id="crAnterior" ${pagina <= 1 ? "disabled" : ""}>← 100 anteriores</button><span class="badge a">Página ${numeroVE(pagina)} de ${numeroVE(paginas)}</span><button class="btn o sm" id="crSiguiente" ${pagina >= paginas ? "disabled" : ""}>100 siguientes →</button></div>`;
+  cont.querySelectorAll("[data-crver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.crver));
+  if ($("crAnterior")) $("crAnterior").onclick = () => cargarPaginaCentro(pagina - 1);
+  if ($("crSiguiente")) $("crSiguiente").onclick = () => cargarPaginaCentro(pagina + 1);
+}
+
+async function cargarPaginaCentro(pagina) {
+  if (!CENTRO_ESTADO) return;
+  const total = Number(CENTRO_ESTADO.data.total || 0);
+  const paginas = Math.max(1, Math.ceil(total / CENTRO_POR_PAGINA));
+  pagina = Math.max(1, Math.min(pagina, paginas));
+  const cont = $("crVista"); if (cont) cont.style.opacity = ".55";
+  let q = sb.from("rc_tramites").select("id,fecha,tipo,titular,cedula_titular,numero_acta,ano,owner_usuario,created_at")
+    .order("fecha", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
+  const f = CENTRO_ESTADO.filtros;
+  if (f.desde) q = q.gte("fecha", f.desde); if (f.hasta) q = q.lte("fecha", f.hasta);
+  if (f.tipo) q = q.eq("tipo", f.tipo); if (f.funcionario) q = q.eq("owner_usuario", f.funcionario);
+  if (f.origen) q = q.eq("legacy", f.origen === "archivo");
+  const desde = (pagina - 1) * CENTRO_POR_PAGINA;
+  const { data, error } = await q.range(desde, desde + CENTRO_POR_PAGINA - 1);
+  if (cont) cont.style.opacity = "1";
+  if (error) { toast("No se pudo cargar la página: " + error.message); return; }
+  CENTRO_ESTADO.pagina = pagina;
+  pintarPaginaCentro(data || [], pagina);
+  $("crVista")?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function consultaDetalleCentro(f) {
@@ -736,9 +870,10 @@ async function vForm(tipo, registro) {
   EDIT_ID = registro ? registro.id : null;
   let campos = "";
   cfg.secciones.forEach(sec => {
-    if (sec.texto) { campos += `<div class="sec-t">${esc(sec.t)}</div><div class="w12" style="grid-column:1/-1;font-size:12px;line-height:1.5;color:#475569;white-space:pre-line;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${esc(sec.texto)}</div>`; return; }
-    if (sec.rep) { campos += `<div class="sec-t">${esc(sec.t)}</div><div class="fld w4"><label>¿Tiene ${esc(sec.rep.plural)}?</label><select data-reptoggle="${sec.rep.key}"><option value="">Seleccione</option><option value="si">Sí</option><option value="no">No</option></select></div><div class="w12" data-rep="${sec.rep.key}" style="display:none;grid-column:1/-1"></div>`; return; }
-    campos += `<div class="sec-t">${esc(sec.t)}</div>`;
+    const natAttr = sec.modelos ? ` data-nat-modelos="${esc(sec.modelos.join(","))}"` : "";
+    if (sec.texto) { campos += `<div class="sec-t"${natAttr}>${esc(sec.t)}</div><div class="w12"${natAttr} style="grid-column:1/-1;font-size:12px;line-height:1.5;color:#475569;white-space:pre-line;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${esc(sec.texto)}</div>`; return; }
+    if (sec.rep) { campos += `<div class="sec-t"${natAttr}>${esc(sec.t)}</div><div class="fld w4"${natAttr}><label>¿Tiene ${esc(sec.rep.plural)}?</label><select data-reptoggle="${sec.rep.key}"><option value="">Seleccione</option><option value="si">Sí</option><option value="no">No</option></select></div><div class="w12" data-rep="${sec.rep.key}"${natAttr} style="display:none;grid-column:1/-1"></div>`; return; }
+    campos += `<div class="sec-t"${natAttr}>${esc(sec.t)}</div>`;
     sec.campos.forEach(c => {
       const val = datos[c.n] != null ? datos[c.n] : "";
       let input;
@@ -757,7 +892,7 @@ async function vForm(tipo, registro) {
         input = `<div style="display:flex;gap:6px"><input type="text" data-hora="${c.n}" value="${esc(hhmm)}" placeholder="HH:MM" style="flex:1"><select data-horaap="${c.n}" style="width:76px;flex:none"><option value=""></option><option ${ap === "AM" ? "selected" : ""}>AM</option><option ${ap === "PM" ? "selected" : ""}>PM</option></select></div>`;
       }
       else input = `<input type="text" data-n="${c.n}" value="${esc(val)}">`;
-      campos += `<div class="fld w${c.w}"><label>${esc(c.l)}</label>${input}</div>`;
+      campos += `<div class="fld w${c.w}"${natAttr}><label>${esc(c.l)}</label>${input}</div>`;
     });
   });
   const hoy = new Date().toISOString().slice(0, 10);
@@ -776,6 +911,27 @@ async function vForm(tipo, registro) {
   $("fSave").onclick = () => guardar(tipo);
   engancharCNE($("view"));
   wireRepeaters(tipo, datos);
+  if (tipo === "naturalizacion") wireNaturalizacion(datos);
+}
+function wireNaturalizacion(datos) {
+  const sel = $("view").querySelector('[data-n="tipo_naturalizacion"]');
+  const fundamento = $("view").querySelector('[data-n="fundamento_legal"]');
+  const declaracion = $("view").querySelector('[data-n="declaracion_legal"]');
+  if (!sel) return;
+  if (!sel.value) sel.value = Object.keys(NAT_MODELOS)[0];
+  if (fundamento) fundamento.readOnly = true;
+  if (declaracion) declaracion.readOnly = true;
+  const actualizar = () => {
+    const clave = sel.value, modelo = NAT_MODELOS[clave] || NAT_MODELOS[Object.keys(NAT_MODELOS)[0]];
+    if (fundamento) fundamento.value = modelo.articulo;
+    if (declaracion) declaracion.value = modelo.declaracion;
+    const prefijo = clave.split(" · ")[0];
+    $("view").querySelectorAll("[data-nat-modelos]").forEach(el => {
+      el.style.display = el.dataset.natModelos.split(",").includes(prefijo) ? "" : "none";
+    });
+  };
+  sel.onchange = actualizar;
+  actualizar();
 }
 async function sugerirNumero(tipo) {
   const ano = $("fAno") ? Number($("fAno").value) : new Date().getFullYear();
@@ -801,7 +957,11 @@ async function guardar(tipo) {
   $("fSave").disabled = true; $("fSave").textContent = "Guardando…";
   let res, id;
   if (EDIT_ID) { res = await sb.from("rc_tramites").update(row).eq("id", EDIT_ID); id = EDIT_ID; }
-  else { const r = await sb.from("rc_tramites").insert(row).select("id").single(); res = r; id = r.data && r.data.id; }
+  else {
+    const r = await sb.from("rc_tramites").insert(row).select("id,numero_acta").single();
+    res = r; id = r.data && r.data.id;
+    if (r.data && r.data.numero_acta) row.numero_acta = r.data.numero_acta;
+  }
   $("fSave").disabled = false;
   if (res.error) { toast("Error: " + res.error.message); $("fSave").textContent = "💾 Registrar"; return; }
   await registrar(EDIT_ID ? "editar" : "crear", tipo, id, `${EDIT_ID ? "Editó" : "Registró"} ${cfg.label}: ${titular}`, { numero_acta: row.numero_acta });
@@ -856,6 +1016,87 @@ async function vRegistros() {
   cargar();
 }
 
+/* ---- Asistente IA: consulta controlada del archivo ---- */
+let IA_OCUPADA = false;
+function iaTexto(texto) {
+  return esc(String(texto || "")).replace(/\n/g, "<br>");
+}
+function iaMensaje(clase, texto, filas) {
+  const chat = $("iaChat"); if (!chat) return;
+  const fuentes = Array.isArray(filas) && filas.length
+    ? `<div class="ai-sources"><b style="font-size:11px;color:var(--navy)">Registros consultados</b>${filas.slice(0, 12).map(r => `<div class="ai-source"><span><b>${esc(tipoLabel(r.tipo))}</b> · ${esc(r.titular || "Sin titular")}${r.numero_acta ? ` · N° ${esc(r.numero_acta)}${r.ano ? "/" + esc(r.ano) : ""}` : ""}</span><button class="btn o sm" data-ia-ver="${esc(r.id)}">Ver</button></div>`).join("")}</div>`
+    : "";
+  chat.insertAdjacentHTML("beforeend", `<div class="ai-msg ${clase}"><span class="who">${clase === "user" ? "Tu consulta" : "Asistente del Registro Civil"}</span><div>${iaTexto(texto)}</div>${fuentes}</div>`);
+  chat.querySelectorAll("[data-ia-ver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.iaVer));
+  chat.scrollTop = chat.scrollHeight;
+}
+async function iaConsultar(pregunta) {
+  pregunta = String(pregunta || "").trim();
+  if (IA_OCUPADA || pregunta.length < 3) return;
+  IA_OCUPADA = true;
+  iaMensaje("user", pregunta);
+  const enviar = $("iaEnviar"), entrada = $("iaPregunta");
+  if (enviar) { enviar.disabled = true; enviar.textContent = "Consultando…"; }
+  if (entrada) entrada.value = "";
+  const espera = document.createElement("div"); espera.className = "ai-msg bot"; espera.id = "iaEspera"; espera.innerHTML = `<span class="who">Asistente del Registro Civil</span><div class="spin" style="margin:8px auto"></div>`; $("iaChat")?.appendChild(espera);
+  try {
+    const { data, error } = await sb.functions.invoke("registro-ai", { body: { question: pregunta } });
+    espera.remove();
+    if (error) throw error;
+    if (!data || data.error) throw new Error(data?.error || "No se recibió respuesta.");
+    iaMensaje("bot", data.answer || "Consulta completada.", data.rows || []);
+    await registrar("consulta_ia", data.plan?.tipo || null, null, `Consultó el asistente IA · ${Number(data.total || 0)} coincidencia(s)`);
+  } catch (e) {
+    espera.remove();
+    let mensaje = e?.context?.status === 429 ? "Se alcanzó el límite momentáneo de consultas. Espera un minuto." : (e?.message || "No se pudo consultar el asistente.");
+    iaMensaje("bot", `No pude completar la consulta: ${mensaje}`);
+  } finally {
+    IA_OCUPADA = false;
+    if (enviar) { enviar.disabled = false; enviar.textContent = "Preguntar"; }
+    entrada?.focus();
+  }
+}
+function vAsistenteIA() {
+  $("view").innerHTML = `<h1 class="t">Asistente IA</h1><div class="sub">Pregunte en lenguaje natural sobre actas, trámites, fechas, titulares, cédulas, funcionarios y estadísticas.</div>
+    <div class="card ai-hero"><h2>Consulta inteligente del Registro Civil</h2><p>La IA interpreta su pregunta y consulta la información autorizada en la base. Las cifras y coincidencias se obtienen del sistema antes de redactar la respuesta.</p><span class="ai-safe">🔒 Disponible únicamente con sesión iniciada</span></div>
+    <div class="card"><div class="ai-suggestions">
+      ${["¿Cuántas actas de nacimiento hay por año?", "Busca las actas de matrimonio del archivo histórico", "¿Qué trámites se registraron este mes?", "Muéstrame las actas atendidas por SEA"].map(q => `<button class="ai-suggestion" data-ia-q="${esc(q)}">${esc(q)}</button>`).join("")}
+    </div><div class="ai-chat" id="iaChat"></div>
+    <div class="ai-compose"><textarea id="iaPregunta" maxlength="800" placeholder="Ejemplo: busca el acta de nacimiento 248 del año 2026"></textarea><button class="btn" id="iaEnviar">Preguntar</button></div>
+    <div class="sub" style="margin-top:9px">Verifique el acta original antes de tomar una decisión oficial. El asistente no modifica registros.</div></div>`;
+  iaMensaje("bot", "Estoy listo. Puedes preguntarme por una persona, número de acta, período, tipo de trámite, funcionario o cantidad de registros.");
+  $("view").querySelectorAll("[data-ia-q]").forEach(b => b.onclick = () => iaConsultar(b.dataset.iaQ));
+  $("iaEnviar").onclick = () => iaConsultar($("iaPregunta").value);
+  $("iaPregunta").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); iaConsultar(e.currentTarget.value); } };
+}
+
+function etiquetaDatoOriginal(ruta) {
+  const especiales = { source: "Tabla de origen", source_id: "Identificador original", tipo_original: "Trámite original", acta_original: "Número de acta original", constancia_original: "Número de constancia original", fecha_original: "Fecha original", hora_original: "Hora original", funcionario: "Funcionario original", autoridad: "Autoridad original", nombre_enriquecido: "Nombre recuperado", libro: "Datos del libro", detalle_tabla: "Datos detallados recuperados" };
+  const clave = ruta.split(".").pop();
+  return especiales[clave] || clave.replace(/^_+/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+function aplanarDatosOriginales(valor, ruta = "", salida = []) {
+  if (valor == null || valor === "") return salida;
+  if (Array.isArray(valor)) {
+    valor.forEach((v, i) => aplanarDatosOriginales(v, `${ruta}.${i + 1}`, salida));
+  } else if (typeof valor === "object") {
+    Object.entries(valor).forEach(([k, v]) => {
+      if (/password|contrase|token|secret/i.test(k)) return;
+      aplanarDatosOriginales(v, ruta ? `${ruta}.${k}` : k, salida);
+    });
+  } else {
+    salida.push({ ruta, etiqueta: etiquetaDatoOriginal(ruta), valor: String(valor) });
+  }
+  return salida;
+}
+function bloqueDatosOriginales(r) {
+  if (!r.legacy) return "";
+  const filas = aplanarDatosOriginales(r.datos || {}).filter(x => x.valor.trim() && x.valor !== "0000-00-00" && x.valor !== "0");
+  return `<div class="sec-t" style="border:none;color:#0a2351">Información completa conservada del sistema anterior</div>
+    <div class="sub" style="margin:7px 0 10px">Se muestran todos los valores recuperados de la fuente original, incluso los metadatos que no forman parte del formato moderno.</div>
+    ${filas.length ? filas.map(x => `<div class="fila"><span class="k">${esc(x.etiqueta)}</span><span>${esc(x.valor)}</span></div>`).join("") : '<div class="empty">La fuente antigua no conservó más campos para este registro.</div>'}`;
+}
+
 /* ---- Ver / editar / eliminar ---- */
 async function vVer(id) {
   $("view").innerHTML = `<div class="spin"></div>`;
@@ -865,11 +1106,16 @@ async function vVer(id) {
   const puedeEditar = (r.owner === USER.id || esAdmin()) && r.tipo !== "acta_legacy" && tramiteActivo(r.tipo);
   let cuerpo = "";
   if (cfg) { cfg.secciones.forEach(sec => {
+    if (r.tipo === "naturalizacion" && sec.modelos) {
+      const prefijo = String((r.datos || {}).tipo_naturalizacion || "Modelo I").split(" · ")[0];
+      if (!sec.modelos.includes(prefijo)) return;
+    }
     if (sec.texto) { cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div><div class="fila"><span style="font-size:12px;line-height:1.5;color:#475569;white-space:pre-line">${esc(sec.texto)}</span></div>`; return; }
     if (sec.rep) { const arr = (r.datos || {})[sec.rep.key]; if (Array.isArray(arr) && arr.length) { cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div>` + arr.map((it, i) => sec.rep.campos.map(c => { const v = it[c.n]; return v ? `<div class="fila"><span class="k">${esc(sec.rep.singular)} ${i + 1} · ${esc(c.l)}</span><span>${esc(v)}</span></div>` : ""; }).join("")).join(""); } return; }
     const filas = sec.campos.map(c => { const v = (r.datos || {})[c.n]; return v ? `<div class="fila"><span class="k">${esc(c.l)}</span><span>${esc(v)}</span></div>` : ""; }).join(""); if (filas) cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div>${filas}`;
   }); }
-  else { cuerpo = Object.entries(r.datos || {}).map(([k, v]) => `<div class="fila"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join(""); }
+  else { cuerpo = Object.entries(r.datos || {}).map(([k, v]) => `<div class="fila"><span class="k">${esc(k)}</span><span>${esc(typeof v === "object" ? JSON.stringify(v) : v)}</span></div>`).join(""); }
+  cuerpo += bloqueDatosOriginales(r);
   $("view").innerHTML = `<h1 class="t">${esc(tipoLabel(r.tipo))} ${r.legacy ? '<span class="badge leg">Archivo</span>' : ''}</h1>
     <div class="sub">${esc(r.titular || "")}${r.numero_acta ? " · Acta N° " + esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : ""} · registrado por ${esc(r.owner_usuario || "sistema")}</div>
     <div class="card">${cuerpo || '<div class="empty">Sin datos.</div>'}
@@ -1059,6 +1305,34 @@ const ESCUDO_CR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIoAAABuCAYAAAD
 const LOGO_CNE = "data:image/jpeg;base64,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";
 const SELLO = "data:image/jpeg;base64,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";
 let FIRMA = { nombre: "Emperatriz García Ponte", cedula: "V-6.216.949", oficina: "Charallave, Estado Miranda", resolucion: "HM-013-2019", resolucion_fecha: "22/03/2019", gaceta: "N°24", gaceta_fecha: "20/03/2019", alcaldesa: "Yuhismar Hernández", slogan: "Esto apenas comienza" };
+function datosCompletosRegistro(r) {
+  const base = { ...((r && r.datos) || {}) };
+  const legacy = base._legacy || {};
+  const adicionales = [legacy.detalle_tabla, legacy.datos_recuperados, legacy.recuperado];
+  adicionales.forEach(obj => {
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
+    Object.entries(obj).forEach(([k, v]) => { if ((base[k] == null || base[k] === "") && v != null && v !== "") base[k] = v; });
+  });
+  return base;
+}
+function firmaParaRegistro(r) {
+  if (!r || !r.legacy) return { ...FIRMA };
+  const d = (r && r.datos) || {}, legacy = d._legacy || {};
+  const guardada = d.firma_historica || legacy.firma_historica || {};
+  const autoridad = String(guardada.nombre || legacy.autoridad || "Autoridad registrada en el sistema anterior").trim();
+  const conocida = /emperatriz.*garc[ií]a.*ponte/i.test(autoridad);
+  const union2019 = r.tipo === "union_estable" && conocida;
+  return {
+    nombre: autoridad,
+    cedula: guardada.cedula || (conocida ? "V-6.216.949" : ""),
+    oficina: guardada.oficina || "Charallave, Estado Miranda",
+    resolucion: guardada.resolucion || (union2019 ? "HM-013-2019" : ""),
+    resolucion_fecha: guardada.resolucion_fecha || (union2019 ? "22/03/2019" : ""),
+    gaceta: guardada.gaceta || (union2019 ? "N°24" : ""),
+    gaceta_fecha: guardada.gaceta_fecha || (union2019 ? "20/03/2019" : ""),
+    historica: true,
+  };
+}
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 function fechaLarga(d) {
   if (!d) d = new Date();
@@ -1067,15 +1341,15 @@ function fechaLarga(d) {
 }
 function nuevoDoc() { return new jsPDF({ unit: "mm", format: "legal", orientation: "portrait" }); }
 function tricolor(doc) { const W = doc.internal.pageSize.getWidth(); doc.setFillColor(244, 194, 13); doc.rect(0, 0, W / 3, 3, "F"); doc.setFillColor(10, 108, 176); doc.rect(W / 3, 0, W / 3, 3, "F"); doc.setFillColor(210, 21, 52); doc.rect(2 * W / 3, 0, W / 3, 3, "F"); }
-function firma(doc, y) {
+function firma(doc, y, firmaDoc = FIRMA) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   if (y > H - 48) { doc.addPage(); y = 30; } else { y += 22; }
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.line(W / 2 - 38, y, W / 2 + 38, y);
   doc.setFont("times", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-  doc.text(FIRMA.nombre, W / 2, y + 5, { align: "center" });
+  doc.text(firmaDoc.nombre || "", W / 2, y + 5, { align: "center" });
   doc.setFont("times", "normal"); doc.setFontSize(8);
   doc.text("Registradora Civil del Municipio Cristóbal Rojas", W / 2, y + 9.5, { align: "center" });
-  doc.text("C.I. " + FIRMA.cedula + " · Resolución N° " + FIRMA.resolucion + " · Gaceta " + FIRMA.gaceta, W / 2, y + 13.5, { align: "center" });
+  doc.text([firmaDoc.cedula ? "C.I. " + firmaDoc.cedula : "", firmaDoc.resolucion ? "Resolución N° " + firmaDoc.resolucion : "", firmaDoc.gaceta ? "Gaceta " + firmaDoc.gaceta : ""].filter(Boolean).join(" · "), W / 2, y + 13.5, { align: "center" });
 }
 // Dibuja una grilla de celdas enmarcadas (etiqueta chica arriba, valor abajo), rellenando cada fila de borde a borde segun los anchos (w 1..12). Devuelve la nueva y.
 function drawGrid(doc, fields, x0, y, W) {
@@ -1112,7 +1386,7 @@ function drawGrid(doc, fields, x0, y, W) {
   }
   return y;
 }
-function bloqueFirmas(doc, y) {
+function bloqueFirmas(doc, y, firmaDoc = FIRMA) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15;
   if (y + 73 > H - 16) { doc.addPage(); y = 22; } else y += 12;
   const xL = MX + (RX - MX) * 0.25, xR = MX + (RX - MX) * 0.75;
@@ -1128,13 +1402,13 @@ function bloqueFirmas(doc, y) {
   y += 18; par(y, "Firma del Testigo", "Firma del Testigo");
   y += 13;
   doc.setDrawColor(0); doc.line(W / 2 - 34, y, W / 2 + 34, y);
-  doc.setFont("times", "bold"); doc.setFontSize(9.5); doc.setTextColor(0); doc.text(FIRMA.nombre, W / 2, y + 4.5, { align: "center" });
+  doc.setFont("times", "bold"); doc.setFontSize(9.5); doc.setTextColor(0); doc.text(firmaDoc.nombre || "", W / 2, y + 4.5, { align: "center" });
   doc.setFont("times", "normal"); doc.setFontSize(8);
-  doc.text("Registradora Civil del Municipio Cristóbal Rojas · C.I. " + FIRMA.cedula, W / 2, y + 8.5, { align: "center" });
-  doc.text("Resolución N° " + FIRMA.resolucion + " · Gaceta " + FIRMA.gaceta, W / 2, y + 12, { align: "center" });
+  doc.text("Registradora Civil del Municipio Cristóbal Rojas" + (firmaDoc.cedula ? " · C.I. " + firmaDoc.cedula : ""), W / 2, y + 8.5, { align: "center" });
+  doc.text([firmaDoc.resolucion ? "Resolución N° " + firmaDoc.resolucion : "", firmaDoc.gaceta ? "Gaceta " + firmaDoc.gaceta : ""].filter(Boolean).join(" · "), W / 2, y + 12, { align: "center" });
 }
 function generarActaPDF(r) {
-  const cfg = TRAMITES[r.tipo], doc = nuevoDoc(), d = r.datos || {};
+  const cfg = TRAMITES[r.tipo], doc = nuevoDoc(), d = datosCompletosRegistro(r), firmaDoc = firmaParaRegistro(r);
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15, CW = RX - MX;
   tricolor(doc);
   try { doc.addImage(LOGO_CNE, "JPEG", 80, 6, 42, 23); doc.addImage(SELLO, "JPEG", 132, 5, 24, 24); } catch (e) {}
@@ -1170,19 +1444,23 @@ function generarActaPDF(r) {
     y += 7;
   }
   const regFields = [
-    { l: "Nombres y Apellidos", v: FIRMA.nombre, w: 12 },
-    { l: "Documento de Identidad", v: FIRMA.cedula, w: 6 },
-    { l: "Oficina o Unidad de Registro Civil", v: FIRMA.oficina, w: 6 },
-    { l: "Resolución N°", v: FIRMA.resolucion, w: 3 },
-    { l: "Fecha", v: FIRMA.resolucion_fecha, w: 3 },
-    { l: "Gaceta Municipal N°", v: FIRMA.gaceta, w: 3 },
-    { l: "Fecha", v: FIRMA.gaceta_fecha, w: 3 },
+    { l: "Nombres y Apellidos", v: firmaDoc.nombre, w: 12 },
+    { l: "Documento de Identidad", v: firmaDoc.cedula, w: 6 },
+    { l: "Oficina o Unidad de Registro Civil", v: firmaDoc.oficina, w: 6 },
+    { l: "Resolución N°", v: firmaDoc.resolucion, w: 3 },
+    { l: "Fecha", v: firmaDoc.resolucion_fecha, w: 3 },
+    { l: "Gaceta Municipal N°", v: firmaDoc.gaceta, w: 3 },
+    { l: "Fecha", v: firmaDoc.gaceta_fecha, w: 3 },
   ];
   doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5, "FD");
   doc.setFont("times", "bold"); doc.setFontSize(8.6); doc.setTextColor(0); doc.text("A- Datos del Registrador(a) Civil", MX + 2, y + 3.8);
   y += 5.5; y = drawGrid(doc, regFields, MX, y, CW); y += 2.5;
   let letra = 66;
   cfg.secciones.forEach(sec => {
+    if (r.tipo === "naturalizacion" && sec.modelos) {
+      const prefijo = String(d.tipo_naturalizacion || "Modelo I").split(" · ")[0];
+      if (!sec.modelos.includes(prefijo)) return;
+    }
     const L = String.fromCharCode(letra); letra++;
     if (y + 12 > H - 40) { doc.addPage(); y = 18; }
     doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5, "FD");
@@ -1215,14 +1493,14 @@ function generarActaPDF(r) {
     }
     y += 2.5;
   });
-  bloqueFirmas(doc, y);
+  bloqueFirmas(doc, y, firmaDoc);
   return doc;
 }
-function narrativa(r) {
-  const d = r.datos || {};
+function narrativa(r, firmaDoc = firmaParaRegistro(r)) {
+  const d = datosCompletosRegistro(r);
   const nom = (r.titular || d.nombres || "").trim();
   const ced = d.cedula || r.cedula_titular || "";
-  let b = `Quien suscribe, ${FIRMA.nombre}, Registradora Civil del Municipio Cristóbal Rojas del Estado Bolivariano de Miranda, según Resolución N° ${FIRMA.resolucion}, por medio de la presente hace constar que el(la) ciudadano(a) ${nom}, titular de la cédula de identidad N° ${ced}`;
+  let b = `Quien suscribe, ${firmaDoc.nombre}, Registradora Civil del Municipio Cristóbal Rojas del Estado Bolivariano de Miranda${firmaDoc.resolucion ? ", según Resolución N° " + firmaDoc.resolucion : ""}, por medio de la presente hace constar que el(la) ciudadano(a) ${nom}, titular de la cédula de identidad N° ${ced}`;
   if (d.fecha_nac) b += `, nacido(a) el ${fechaLarga(d.fecha_nac)}`;
   if (d.nacionalidad) b += `, de nacionalidad ${d.nacionalidad}`;
   if (d.estado_civil) b += `, de estado civil ${d.estado_civil}`;
@@ -1240,7 +1518,7 @@ function narrativa(r) {
   return b + c;
 }
 function generarConstanciaPDF(r) {
-  const cfg = TRAMITES[r.tipo], doc = nuevoDoc();
+  const cfg = TRAMITES[r.tipo], doc = nuevoDoc(), firmaDoc = firmaParaRegistro(r);
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 24, RX = W - 24;
   // Membrete institucional: escudo nacional (izq) + escudo de Cristóbal Rojas (der), identidad actual sin lemas políticos.
   try { doc.addImage(ESCUDO_NAC, "JPEG", 22, 12, 19, 23); } catch (e) {}
@@ -1253,20 +1531,20 @@ function generarConstanciaPDF(r) {
   y += 34;
   doc.setFont("times", "bold"); doc.setFontSize(16); doc.setTextColor(10, 35, 81); doc.text(cfg.label.toUpperCase(), W / 2, y, { align: "center" });
   y += 14; doc.setTextColor(0, 0, 0); doc.setFont("times", "normal"); doc.setFontSize(11.5);
-  const lines = doc.splitTextToSize(narrativa(r), RX - MX);
+  const lines = doc.splitTextToSize(narrativa(r, firmaDoc), RX - MX);
   doc.text(lines, MX, y); y += lines.length * 6.4 + 12;
   doc.text(doc.splitTextToSize("Se expide la presente constancia a petición de la parte interesada, en Charallave, a los " + fechaLarga(new Date()) + ".", RX - MX), MX, y);
   y += 16;
   if (y > H - 66) { doc.addPage(); y = 40; }
-  firma(doc, y);
+  firma(doc, y, firmaDoc);
   // Pie institucional — gestión actual (Yuhismar Hernández · «Esto apenas comienza»), estilo del portal web.
   const fy = H - 26;
   doc.setFillColor(244, 194, 13); doc.rect(0, fy, W / 3, 1.6, "F"); doc.setFillColor(10, 108, 176); doc.rect(W / 3, fy, W / 3, 1.6, "F"); doc.setFillColor(210, 21, 52); doc.rect(2 * W / 3, fy, W / 3, 1.6, "F");
   doc.setFillColor(10, 35, 81); doc.rect(0, fy + 1.6, W, 24.4, "F");
   doc.setTextColor(255, 255, 255); doc.setFont("times", "italic"); doc.setFontSize(11);
-  doc.text("«" + (FIRMA.slogan || "Esto apenas comienza") + "»", W / 2, fy + 8.5, { align: "center" });
+  doc.text(r.legacy ? "Documento conservado del archivo histórico" : "«" + (FIRMA.slogan || "Esto apenas comienza") + "»", W / 2, fy + 8.5, { align: "center" });
   doc.setFont("times", "bold"); doc.setFontSize(9.5);
-  doc.text((FIRMA.alcaldesa || "Yuhismar Hernández") + " · Alcaldesa del Municipio Cristóbal Rojas", W / 2, fy + 14, { align: "center" });
+  doc.text(r.legacy ? "Los datos de autoridad corresponden al documento original" : (FIRMA.alcaldesa || "Yuhismar Hernández") + " · Alcaldesa del Municipio Cristóbal Rojas", W / 2, fy + 14, { align: "center" });
   doc.setFont("times", "normal"); doc.setFontSize(7.5); doc.setTextColor(203, 216, 240);
   doc.text("Oficina Municipal de Registro Civil · Charallave, Estado Bolivariano de Miranda", W / 2, fy + 19.5, { align: "center" });
   return doc;
