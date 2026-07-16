@@ -139,6 +139,7 @@
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 const SUPA_URL = "https://hcokzgmvoatmnmiefffv.supabase.co";
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhjb2t6Z212b2F0bW5taWVmZmZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NjA0OTUsImV4cCI6MjA5OTUzNjQ5NX0.Iy5xlMz_cDkhHWaTU_L8ot5P9ReW6m9TQ4GcBrAiz0A";
 const DOM = "@regcivil.alcaldiadecharallave.com";
@@ -372,7 +373,7 @@ async function vVer(id) {
     <div class="sub">${esc(r.titular || "")}${r.numero_acta ? " · Acta N° " + esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : ""} · registrado por ${esc(r.owner_usuario || "sistema")}</div>
     <div class="card">${cuerpo || '<div class="empty">Sin datos.</div>'}
     <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
-      ${cfg ? `<button class="btn" id="imprimir">🖨️ Imprimir constancia</button>` : ""}
+      ${cfg ? `<button class="btn" id="imprimir">📄 Descargar acta (PDF)</button>` : ""}
       ${pdfBtn}
       ${puedeEditar ? `<button class="btn o" id="editar">✏️ Editar</button><button class="btn r" id="eliminar">🗑️ Eliminar</button>` : ""}
       <button class="btn o" id="volver">← Volver</button>
@@ -524,39 +525,116 @@ function modalUsuario(u) {
 $("modalBg").addEventListener("click", e => { if (e.target === $("modalBg")) $("modalBg").classList.remove("show"); });
 
 /* ---- Impresión de constancia ---- */
+// ===== Generación de PDF fiel al formato del PHP (FPDF/CNE) =====
+const FIRMA = { nombre: "Emperatriz García Ponte", cedula: "V-6.216.949", resolucion: "HM-013-2019", gaceta: "N°24", fecha_res: "22/03/2019" };
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+function fechaLarga(d) {
+  if (!d) d = new Date();
+  if (typeof d === "string") { const p = d.split("-"); if (p.length === 3) return `${+p[2]} de ${MESES[+p[1] - 1] || ""} de ${p[0]}`; return d; }
+  return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+}
+function nuevoDoc() { return new jsPDF({ unit: "mm", format: "legal", orientation: "portrait" }); }
+function tricolor(doc) { const W = doc.internal.pageSize.getWidth(); doc.setFillColor(244, 194, 13); doc.rect(0, 0, W / 3, 3, "F"); doc.setFillColor(10, 108, 176); doc.rect(W / 3, 0, W / 3, 3, "F"); doc.setFillColor(210, 21, 52); doc.rect(2 * W / 3, 0, W / 3, 3, "F"); }
+function firma(doc, y) {
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  if (y > H - 48) { doc.addPage(); y = 30; } else { y += 22; }
+  doc.setDrawColor(0); doc.setLineWidth(0.3); doc.line(W / 2 - 38, y, W / 2 + 38, y);
+  doc.setFont("times", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+  doc.text(FIRMA.nombre, W / 2, y + 5, { align: "center" });
+  doc.setFont("times", "normal"); doc.setFontSize(8);
+  doc.text("Registradora Civil del Municipio Cristóbal Rojas", W / 2, y + 9.5, { align: "center" });
+  doc.text("C.I. " + FIRMA.cedula + " · Resolución N° " + FIRMA.resolucion + " · Gaceta " + FIRMA.gaceta, W / 2, y + 13.5, { align: "center" });
+}
+function generarActaPDF(r) {
+  const cfg = TRAMITES[r.tipo], doc = nuevoDoc();
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 18, RX = W - 15;
+  tricolor(doc);
+  let y = 13;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(0, 0, 0);
+  doc.text(String(r.numero_acta || ""), RX, y, { align: "right" });
+  doc.setFont("times", "normal"); doc.setFontSize(10.5);
+  ["República Bolivariana de Venezuela", "Consejo Nacional Electoral", "Comisión de Registro Civil y Electoral", "Estado Bolivariano de Miranda", "Municipio Cristóbal Rojas", "Parroquia Charallave"].forEach((t, i) => doc.text(t, MX, y + i * 5));
+  const fp = (r.fecha || "").split("-");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
+  const rl = RX - 42, ry = y + 15;
+  doc.text("ACTA N°  " + (r.numero_acta || ""), rl, ry);
+  doc.text("DÍA  " + (fp[2] || ""), rl, ry + 5); doc.text("MES  " + (fp[1] || ""), rl, ry + 10); doc.text("AÑO  " + (fp[0] || r.ano || ""), rl, ry + 15);
+  y += 34;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+  doc.text("REGISTRO — " + cfg.label.toUpperCase(), MX, y); y += 7;
+  let letra = 65;
+  const salto = (need) => { if (y + need > H - 16) { doc.addPage(); y = 18; } };
+  cfg.secciones.forEach(sec => {
+    const filas = sec.campos.map(c => [c.l, (r.datos || {})[c.n]]).filter(x => x[1] != null && String(x[1]).trim() !== "");
+    const L = String.fromCharCode(letra); letra++;
+    if (!filas.length) return;
+    salto(12);
+    doc.setFillColor(222, 222, 222); doc.setDrawColor(120); doc.setLineWidth(0.2);
+    doc.rect(MX, y, RX - MX, 6, "FD");
+    doc.setFont("times", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+    doc.text(L + ".  " + sec.t, MX + 2, y + 4.2);
+    y += 7.5;
+    doc.setFontSize(9.5);
+    filas.forEach(([k, v]) => {
+      doc.setFont("times", "bold"); const lbl = k + ": ";
+      const lw = doc.getTextWidth(lbl);
+      const vl = doc.splitTextToSize(String(v), RX - MX - 3 - lw);
+      salto(vl.length * 4.4 + 3);
+      doc.setFont("times", "bold"); doc.text(lbl, MX + 2, y);
+      doc.setFont("times", "normal"); doc.text(vl, MX + 2 + lw, y);
+      y += vl.length * 4.4 + 2.2;
+    });
+    y += 3;
+  });
+  firma(doc, y);
+  return doc;
+}
+function narrativa(r) {
+  const d = r.datos || {};
+  const nom = (r.titular || d.nombres || "").trim();
+  const ced = d.cedula || r.cedula_titular || "";
+  let b = `Quien suscribe, ${FIRMA.nombre}, Registradora Civil del Municipio Cristóbal Rojas del Estado Bolivariano de Miranda, según Resolución N° ${FIRMA.resolucion}, por medio de la presente hace constar que el(la) ciudadano(a) ${nom}, titular de la cédula de identidad N° ${ced}`;
+  if (d.fecha_nac) b += `, nacido(a) el ${fechaLarga(d.fecha_nac)}`;
+  if (d.nacionalidad) b += `, de nacionalidad ${d.nacionalidad}`;
+  if (d.estado_civil) b += `, de estado civil ${d.estado_civil}`;
+  if (d.profesion) b += `, de profesión ${d.profesion}`;
+  const c = {
+    fe_vida: `, se encuentra VIVO(A) y domiciliado(a) en ${d.direccion || "esta jurisdicción"}. La presente Fe de Vida tiene validez por un (1) año.`,
+    residencia: `, reside de forma permanente en ${d.direccion || "—"}, con un tiempo de ${d.tiempo || ""} ${d.indicador || ""}, según aval de ${d.organo || "la comunidad organizada"}.`,
+    solteria: `, es de estado civil SOLTERO(A) y domiciliado(a) en ${d.direccion || "—"}.`,
+    buena_conducta: `, observa BUENA CONDUCTA, según aval de ${d.organo || "la comunidad organizada"}, y está domiciliado(a) en ${d.direccion || "—"}.`,
+    perdida: `, declara BAJO FE DE JURAMENTO haber extraviado el (los) siguiente(s) documento(s): ${d.documentos || "—"}.`,
+    manutencion: `, a los fines de la presente Constancia de Manutención${d.nombres_t ? ", siendo su representante/tutor(a) " + d.nombres_t : ""}.`,
+    expensa: `, a los fines de la presente Constancia de Expensa${d.nombres_t ? ", ante " + d.nombres_t : ""}.`,
+    viudez: `, es de estado civil VIUDO(A)${d.viudo_desde ? " desde " + d.viudo_desde : ""}${d.nombres2 ? " del (la) ciudadano(a) " + d.nombres2 : ""}${d.direccion ? ", domiciliado(a) en " + d.direccion : ""}.`,
+  }[r.tipo] || `, a los fines legales consiguientes.`;
+  return b + c;
+}
+function generarConstanciaPDF(r) {
+  const cfg = TRAMITES[r.tipo], doc = nuevoDoc();
+  const W = doc.internal.pageSize.getWidth(), MX = 24, RX = W - 24;
+  tricolor(doc);
+  let y = 22;
+  doc.setFont("times", "bold"); doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+  ["REPÚBLICA BOLIVARIANA DE VENEZUELA", "ESTADO BOLIVARIANO DE MIRANDA", "MUNICIPIO CRISTÓBAL ROJAS", "OFICINA DE REGISTRO CIVIL"].forEach((t, i) => doc.text(t, W / 2, y + i * 5, { align: "center" }));
+  y += 28;
+  doc.setFontSize(16); doc.setTextColor(10, 35, 81); doc.text(cfg.label.toUpperCase(), W / 2, y, { align: "center" });
+  y += 14; doc.setTextColor(0, 0, 0); doc.setFont("times", "normal"); doc.setFontSize(11.5);
+  const lines = doc.splitTextToSize(narrativa(r), RX - MX);
+  doc.text(lines, MX, y); y += lines.length * 6.4 + 12;
+  doc.text(doc.splitTextToSize("Se expide la presente constancia a petición de la parte interesada, en Charallave, a los " + fechaLarga(new Date()) + ".", RX - MX), MX, y);
+  y += 16;
+  firma(doc, y);
+  return doc;
+}
 function imprimir(r) {
-  const cfg = TRAMITES[r.tipo]; if (!cfg) return;
-  const filas = [];
-  cfg.secciones.forEach(sec => { sec.campos.forEach(c => { const v = (r.datos || {})[c.n]; if (v) filas.push([c.l, v]); }); });
-  const cuerpo = filas.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
-  const hoy = new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" });
-  const esc2 = esc;
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc2(cfg.label)}</title><style>
-    *{box-sizing:border-box;margin:0;padding:0;font-family:"Times New Roman",Georgia,serif}
-    body{padding:40px 54px;color:#111;font-size:13px}
-    .hd{text-align:center;border-bottom:2px solid #0a2351;padding-bottom:10px;margin-bottom:6px}
-    .hd b{display:block;font-size:13px}.hd .s{font-size:11px;color:#333}
-    .tri{height:5px;display:flex;margin-bottom:10px}.tri i{flex:1}.tri i:nth-child(1){background:#f4c20d}.tri i:nth-child(2){background:#0a6cb0}.tri i:nth-child(3){background:#d21534}
-    h1{text-align:center;font-size:17px;margin:18px 0 4px;text-transform:uppercase;letter-spacing:.5px;color:#0a2351}
-    .meta{text-align:center;color:#555;font-size:11px;margin-bottom:14px}
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    td{padding:5px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}
-    td.k{font-weight:bold;width:38%;color:#0a2351}
-    .firma{margin-top:70px;text-align:center}.firma .l{border-top:1px solid #111;width:260px;margin:0 auto;padding-top:5px;font-size:12px}
-    .pie{margin-top:30px;font-size:10px;color:#666;text-align:center}
-  </style></head><body>
-    <div class="tri"><i></i><i></i><i></i></div>
-    <div class="hd"><b>REPÚBLICA BOLIVARIANA DE VENEZUELA</b><span class="s">Estado Bolivariano de Miranda · Municipio Cristóbal Rojas</span><span class="s">Alcaldía · Oficina de Registro Civil — Charallave</span></div>
-    <h1>${esc2(cfg.label)}</h1>
-    <div class="meta">${r.numero_acta ? "Acta N° " + esc2(r.numero_acta) + (r.ano ? " · Año " + r.ano : "") + " · " : ""}Emitido en Charallave, ${hoy}</div>
-    <table>${cuerpo}</table>
-    <div class="firma"><div class="l">Emperatriz García Ponte<br><span style="font-size:10px">Registradora Civil · C.I. V-6.216.949 · Res. HM-013-2019</span></div></div>
-    <div class="pie">Documento generado por el Sistema de Registro Civil de la Alcaldía del Municipio Cristóbal Rojas.</div>
-    <scr${""}ipt>window.onload=function(){setTimeout(function(){window.print()},250)}</scr${""}ipt>
-  </body></html>`;
-  const w = window.open("", "_blank"); if (!w) { toast("Permite ventanas emergentes para imprimir"); return; }
-  w.document.write(html); w.document.close();
-  registrar("imprimir", r.tipo, r.id, `Imprimió ${cfg.label}: ${r.titular}`);
+  const cfg = TRAMITES[r.tipo]; if (!cfg) { toast("Este documento no tiene formato de acta."); return; }
+  let doc;
+  try { doc = cfg.num ? generarActaPDF(r) : generarConstanciaPDF(r); }
+  catch (e) { toast("No se pudo generar el PDF: " + (e.message || e)); return; }
+  const base = (cfg.label + " " + (r.numero_acta ? "N " + r.numero_acta : (r.titular || ""))).normalize("NFD").replace(/[^\w\- ]/g, "").trim().replace(/\s+/g, "_");
+  doc.save((base || "acta") + ".pdf");
+  registrar("imprimir", r.tipo, r.id, `Generó el PDF de ${cfg.label}: ${r.titular}`);
 }
 
 /* ============ ARRANQUE ============ */
