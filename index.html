@@ -127,6 +127,26 @@
   footer .f-top b{color:#fff;font-family:var(--serif);font-size:16px}
   footer .f-top span{font-size:12px;color:#8496b8;display:block}
   footer .fn{border-top:1px solid rgba(255,255,255,.1);margin-top:18px;padding-top:16px;font-size:12.5px;color:#7688aa;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  a.card[data-req]{cursor:pointer}
+  .rq-modal{position:fixed;inset:0;background:rgba(8,17,38,.62);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+  .rq-modal.show{display:flex}
+  .rq-box{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 40px 90px rgba(0,0,0,.42);position:relative;animation:rqin .22s ease}
+  @keyframes rqin{from{transform:translateY(14px) scale(.98);opacity:.5}to{transform:none;opacity:1}}
+  .rq-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border:none;border-radius:9px;background:#eef2f7;color:#475569;font-size:16px;cursor:pointer;z-index:2}
+  .rq-x:hover{background:#e2e8f0}
+  .rq-head{display:flex;align-items:center;gap:14px;padding:24px 26px 16px}
+  .rq-ic{width:54px;height:54px;flex:none;border-radius:14px;background:linear-gradient(180deg,#eaf1fb,#dfeaf9);display:flex;align-items:center;justify-content:center;font-size:27px}
+  .rq-eyebrow{font-size:.66rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
+  .rq-head h3{font-family:var(--serif);font-size:1.42rem;font-weight:700;color:var(--navy);margin-top:2px;line-height:1.1}
+  .rq-body{padding:4px 26px 6px}
+  .rq-body ul{list-style:none}
+  .rq-body li{position:relative;padding:9px 0 9px 26px;font-size:14.5px;color:var(--ink-soft);border-bottom:1px solid #f1f4f9;line-height:1.5}
+  .rq-body li:last-child{border-bottom:none}
+  .rq-body li::before{content:"";position:absolute;left:3px;top:15px;width:9px;height:9px;border-radius:2px;background:var(--gold)}
+  .rq-uno{margin-top:16px;font-weight:750;font-size:12.5px;color:var(--navy);text-transform:uppercase;letter-spacing:.03em}
+  .rq-nota{background:#f0f6ff;border:1px solid #cfe0f5;border-radius:10px;padding:11px 14px;font-size:13px;color:#2c4a72;margin:16px 0 4px}
+  .rq-foot{padding:15px 26px 22px;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -142,7 +162,7 @@
       <span><b>Registro Civil</b><span>Municipio Cristóbal Rojas · Charallave</span></span>
     </a>
     <div class="sp"></div>
-    <nav class="top"><a href="#servicios">Servicios</a><a href="#requisitos">Requisitos</a><a href="#oficina">La oficina</a></nav>
+    <nav class="top"><a href="#servicios">Servicios</a><a href="#oficina">La oficina</a></nav>
     <a class="btn" href="sistema/">🔐 Entrar al sistema</a>
   </div></header>
 
@@ -153,7 +173,7 @@
     <h1>La fe pública de los actos y hechos del estado civil</h1>
     <p class="lead">Registramos y certificamos los hechos vitales de los ciudadanos del Municipio Cristóbal Rojas: nacimientos, matrimonios, uniones estables de hecho, defunciones y las constancias que necesitas para tus trámites — con reserva y responsabilidad, conforme a la Ley Orgánica de Registro Civil.</p>
     <div class="cta">
-      <a class="btn gold" href="#requisitos">Ver requisitos de los trámites</a>
+      <a class="btn gold" href="#servicios">Ver servicios y requisitos</a>
       <a class="btn ghost" href="sistema/">Entrar al sistema →</a>
     </div>
     <div class="meta">
@@ -169,122 +189,24 @@
       <p>Toca cualquier trámite para ver sus requisitos y recaudos.</p></div>
     <div class="grid">
       <div class="grp-t">Actos registrales (con número de acta)</div>
-      <a class="card" href="#req-nacimiento"><span class="ic">👶</span><div><h3>Acta de Nacimiento</h3><p>Presentación, reconocimiento e inserción.</p></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-matrimonio"><span class="ic">💍</span><div><h3>Acta de Matrimonio</h3><p>Celebración y registro del vínculo.</p></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-union_estable"><span class="ic">🤝</span><div><h3>Unión Estable de Hecho</h3><p>Concubinato y su disolución.</p></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-defuncion"><span class="ic">🕊️</span><div><h3>Acta de Defunción</h3><p>Registro de defunciones y permisos.</p></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-naturalizacion"><span class="ic">🌐</span><div><h3>Naturalización</h3><p>Actas de naturalización.</p></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-permiso"><span class="ic">⚰️</span><div><h3>Permisos de Cementerio</h3><p>Enterramiento, cremación, exhumación.</p></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="nacimiento" role="button" tabindex="0"><span class="ic">👶</span><div><h3>Acta de Nacimiento</h3><p>Presentación, reconocimiento e inserción.</p></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="matrimonio" role="button" tabindex="0"><span class="ic">💍</span><div><h3>Acta de Matrimonio</h3><p>Celebración y registro del vínculo.</p></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="union_estable" role="button" tabindex="0"><span class="ic">🤝</span><div><h3>Unión Estable de Hecho</h3><p>Concubinato y su disolución.</p></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="defuncion" role="button" tabindex="0"><span class="ic">🕊️</span><div><h3>Acta de Defunción</h3><p>Registro de defunciones y permisos.</p></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="naturalizacion" role="button" tabindex="0"><span class="ic">🌐</span><div><h3>Naturalización</h3><p>Actas de naturalización.</p></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="permiso" role="button" tabindex="0"><span class="ic">⚰️</span><div><h3>Permisos de Cementerio</h3><p>Enterramiento, cremación, exhumación.</p></div><span class="go">Requisitos →</span></a>
       <div class="grp-t">Constancias y certificaciones</div>
-      <a class="card" href="#req-fe_vida"><span class="ic">📝</span><div><h3>Fe de Vida</h3></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-residencia"><span class="ic">🏠</span><div><h3>Constancia de Residencia</h3></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-solteria"><span class="ic">💐</span><div><h3>Carta de Soltería</h3></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-buena_conducta"><span class="ic">⭐</span><div><h3>Buena Conducta</h3></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-manutencion"><span class="ic">🍼</span><div><h3>Manutención / Expensa</h3></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-viudez"><span class="ic">🖤</span><div><h3>Constancia de Viudez</h3></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-perdida"><span class="ic">❓</span><div><h3>Pérdida de Documentos</h3></div><span class="go">Requisitos →</span></a>
-      <a class="card" href="#req-copia"><span class="ic">🖨️</span><div><h3>Entrega de Copias</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="fe_vida" role="button" tabindex="0"><span class="ic">📝</span><div><h3>Fe de Vida</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="residencia" role="button" tabindex="0"><span class="ic">🏠</span><div><h3>Constancia de Residencia</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="solteria" role="button" tabindex="0"><span class="ic">💐</span><div><h3>Carta de Soltería</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="buena_conducta" role="button" tabindex="0"><span class="ic">⭐</span><div><h3>Buena Conducta</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="manutencion" role="button" tabindex="0"><span class="ic">🍼</span><div><h3>Manutención / Expensa</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="viudez" role="button" tabindex="0"><span class="ic">🖤</span><div><h3>Constancia de Viudez</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="perdida" role="button" tabindex="0"><span class="ic">❓</span><div><h3>Pérdida de Documentos</h3></div><span class="go">Requisitos →</span></a>
+      <a class="card" data-req="copia" role="button" tabindex="0"><span class="ic">🖨️</span><div><h3>Entrega de Copias</h3></div><span class="go">Requisitos →</span></a>
     </div>
   </div></section>
 
-  <!-- REQUISITOS -->
-  <section class="req" id="requisitos"><div class="wrap">
-    <div class="sec-h"><p class="eyebrow">Antes de venir</p><h2>Requisitos y recaudos</h2><div class="rule"></div>
-      <p>Prepara tus documentos para agilizar tu trámite. Toca cada trámite para ver el detalle.</p></div>
-    <div class="req-note">ℹ️ Estos requisitos son de orientación, conforme a la Ley Orgánica de Registro Civil y a las normas de la ONRC. La oficina podrá solicitar documentos adicionales según cada caso. La expedición de constancias es <b>gratuita</b>.</div>
-    <div class="req-grid">
-
-      <details class="rq" id="req-nacimiento"><summary><span class="ic">👶</span> Acta de Nacimiento <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Certificado de nacimiento (constancia médica / EV-25) del centro de salud, o constancia de la partera.</li>
-        <li>Cédula de identidad de la madre y del padre (original y fotocopia).</li>
-        <li>Acta de matrimonio de los padres (si son casados).</li>
-        <li>Dos (2) testigos mayores de edad con cédula.</li>
-      </ul><div class="sub">La presentación debe hacerse dentro de los noventa (90) días siguientes al nacimiento.</div></div></details>
-
-      <details class="rq" id="req-matrimonio"><summary><span class="ic">💍</span> Acta de Matrimonio <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad de los contrayentes (original y fotocopia).</li>
-        <li>Acta de nacimiento de ambos contrayentes.</li>
-        <li>Dos (2) testigos mayores de edad, con cédula, por cada contrayente.</li>
-        <li>Solteros: constancia de soltería. Divorciados: sentencia de divorcio. Viudos: acta de defunción del cónyuge anterior.</li>
-        <li>Hijos en común a legitimar: sus actas de nacimiento.</li>
-        <li>Extranjeros: pasaporte y documentos apostillados/legalizados y traducidos.</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-union_estable"><summary><span class="ic">🤝</span> Unión Estable de Hecho <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad de ambos (original y fotocopia).</li>
-        <li>Acta de nacimiento de ambos.</li>
-        <li>Constancia de soltería de ambos.</li>
-        <li>Dos (2) testigos mayores de edad con cédula.</li>
-      </ul><div class="sub">La disolución puede solicitarse de forma conjunta o unilateral.</div></div></details>
-
-      <details class="rq" id="req-defuncion"><summary><span class="ic">🕊️</span> Acta de Defunción <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Certificado de defunción emitido por el médico o autoridad sanitaria (original).</li>
-        <li>Cédula de identidad del fallecido (original).</li>
-        <li>Cédula del declarante (exponente) y de dos (2) testigos.</li>
-        <li>Datos del cónyuge, hijos y padres del fallecido.</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-naturalizacion"><summary><span class="ic">🌐</span> Naturalización <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Carta o Gaceta de Naturalización.</li>
-        <li>Cédula de identidad de extranjero (original y fotocopia).</li>
-        <li>Datos del cónyuge e hijos, si aplica.</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-permiso"><summary><span class="ic">⚰️</span> Permisos de Cementerio <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Acta y certificado de defunción.</li>
-        <li>Cédula del fallecido y del solicitante.</li>
-        <li>Datos del cementerio y de la causa de la muerte.</li>
-      </ul><div class="sub">Aplica para enterramiento, cremación y exhumación.</div></div></details>
-
-      <details class="rq" id="req-fe_vida"><summary><span class="ic">📝</span> Fe de Vida <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Presencia del solicitante.</li>
-        <li>Cédula de identidad (original y fotocopia).</li>
-      </ul><div class="sub">Válida por un (1) año.</div></div></details>
-
-      <details class="rq" id="req-residencia"><summary><span class="ic">🏠</span> Constancia de Residencia <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad (original y fotocopia) del solicitante.</li>
-        <li>Tres (3) ejemplares de la solicitud de Constancia de Residencia emitidas por el sistema.</li>
-      </ul>
-      <div class="uno">Además, uno (1) de los siguientes:</div><ul>
-        <li>Original y fotocopia del RIF, cuando el domicilio fiscal coincida con la residencia declarada.</li>
-        <li>Carta de residencia de la Junta de Condominio, Consejo Comunal registrado o Asociación de Vecinos.</li>
-        <li>Recibo de pago de un servicio (electricidad, aseo, agua, gas, teléfono, TV) a nombre del solicitante, con máximo 3 meses de vigencia.</li>
-        <li>Cualquier otro documento público o privado que acredite la dirección.</li>
-      </ul><div class="sub">Se entrega en un lapso no mayor a 3 días hábiles. Expedición completamente gratuita.</div></div></details>
-
-      <details class="rq" id="req-solteria"><summary><span class="ic">💐</span> Carta de Soltería <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad (original y fotocopia).</li>
-        <li>Acta de nacimiento.</li>
-        <li>Dos (2) testigos con cédula (según la oficina).</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-buena_conducta"><summary><span class="ic">⭐</span> Carta de Buena Conducta <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad (original y fotocopia).</li>
-        <li>Aval o carta de residencia del Consejo Comunal / Junta de Condominio.</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-manutencion"><summary><span class="ic">🍼</span> Manutención / Expensa <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula del solicitante y del representante o tutor.</li>
-        <li>Acta de nacimiento del beneficiario (si es menor de edad).</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-viudez"><summary><span class="ic">🖤</span> Constancia de Viudez <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad del solicitante.</li>
-        <li>Acta de matrimonio y acta de defunción del cónyuge.</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-perdida"><summary><span class="ic">❓</span> Pérdida de Documentos <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad (o denuncia, si también se extravió).</li>
-        <li>Descripción de los documentos extraviados.</li>
-      </ul></div></details>
-
-      <details class="rq" id="req-copia"><summary><span class="ic">🖨️</span> Entrega de Copias de Actas <span class="chev">▶</span></summary><div class="body"><ul>
-        <li>Cédula de identidad del solicitante.</li>
-        <li>Datos del acta: tipo (nacimiento, matrimonio o defunción), número y año.</li>
-      </ul></div></details>
-
-    </div>
-  </div></section>
 
   <!-- OFICINA -->
   <section class="info" id="oficina"><div class="wrap info-grid">
@@ -320,17 +242,36 @@
       <a href="https://alcaldiadecharallave.com/">alcaldiadecharallave.com</a>
     </div>
   </div></footer>
+    <div class="rq-modal" id="rqModal" role="dialog" aria-modal="true" aria-labelledby="rqTitle">
+    <div class="rq-box">
+      <button class="rq-x" id="rqClose" aria-label="Cerrar">✕</button>
+      <div class="rq-head"><span class="rq-ic" id="rqIc"></span><div><div class="rq-eyebrow">Requisitos y recaudos</div><h3 id="rqTitle"></h3></div></div>
+      <div class="rq-body" id="rqBody"></div>
+      <div class="rq-foot">La expedición de las constancias es gratuita. La oficina podrá solicitar documentos adicionales según cada caso, conforme a la Ley Orgánica de Registro Civil.</div>
+    </div>
+  </div>
   <script>
+    const REQ = {"nacimiento":{"icon":"👶","titulo":"Acta de Nacimiento","items":["Certificado de nacimiento (constancia médica / EV-25) del centro de salud, o constancia de la partera.","Cédula de identidad de la madre y del padre (original y fotocopia).","Acta de matrimonio de los padres (si son casados).","Dos (2) testigos mayores de edad con cédula."],"nota":"La presentación debe hacerse dentro de los noventa (90) días siguientes al nacimiento."},"matrimonio":{"icon":"💍","titulo":"Acta de Matrimonio","items":["Cédula de identidad de los contrayentes (original y fotocopia).","Acta de nacimiento de ambos contrayentes.","Dos (2) testigos mayores de edad, con cédula, por cada contrayente.","Solteros: constancia de soltería. Divorciados: sentencia de divorcio. Viudos: acta de defunción del cónyuge anterior.","Hijos en común a legitimar: sus actas de nacimiento.","Extranjeros: pasaporte y documentos apostillados/legalizados y traducidos."]},"union_estable":{"icon":"🤝","titulo":"Unión Estable de Hecho","items":["Cédula de identidad de ambos (original y fotocopia).","Acta de nacimiento de ambos.","Constancia de soltería de ambos.","Dos (2) testigos mayores de edad con cédula."],"nota":"La disolución puede solicitarse de forma conjunta o unilateral."},"defuncion":{"icon":"🕊️","titulo":"Acta de Defunción","items":["Certificado de defunción emitido por el médico o autoridad sanitaria (original).","Cédula de identidad del fallecido (original).","Cédula del declarante (exponente) y de dos (2) testigos.","Datos del cónyuge, hijos y padres del fallecido."]},"naturalizacion":{"icon":"🌐","titulo":"Naturalización","items":["Carta o Gaceta de Naturalización.","Cédula de identidad de extranjero (original y fotocopia).","Datos del cónyuge e hijos, si aplica."]},"permiso":{"icon":"⚰️","titulo":"Permisos de Cementerio","items":["Acta y certificado de defunción.","Cédula del fallecido y del solicitante.","Datos del cementerio y de la causa de la muerte."],"nota":"Aplica para enterramiento, cremación y exhumación."},"fe_vida":{"icon":"📝","titulo":"Fe de Vida","items":["Presencia del solicitante.","Cédula de identidad (original y fotocopia)."],"nota":"Válida por un (1) año."},"residencia":{"icon":"🏠","titulo":"Constancia de Residencia","items":["Cédula de identidad (original y fotocopia) del solicitante.","Tres (3) ejemplares de la solicitud de Constancia de Residencia emitidas por el sistema."],"uno":["Original y fotocopia del RIF, cuando el domicilio fiscal coincida con la residencia declarada.","Carta de residencia de la Junta de Condominio, Consejo Comunal registrado o Asociación de Vecinos.","Recibo de pago de un servicio (electricidad, aseo, agua, gas, teléfono, TV) a nombre del solicitante, con máximo 3 meses de vigencia.","Cualquier otro documento público o privado que acredite la dirección."],"nota":"Se entrega en un lapso no mayor a 3 días hábiles. Expedición completamente gratuita."},"solteria":{"icon":"💐","titulo":"Carta de Soltería","items":["Cédula de identidad (original y fotocopia).","Acta de nacimiento.","Dos (2) testigos con cédula (según la oficina)."]},"buena_conducta":{"icon":"⭐","titulo":"Carta de Buena Conducta","items":["Cédula de identidad (original y fotocopia).","Aval o carta de residencia del Consejo Comunal / Junta de Condominio."]},"manutencion":{"icon":"🍼","titulo":"Manutención / Expensa","items":["Cédula del solicitante y del representante o tutor.","Acta de nacimiento del beneficiario (si es menor de edad)."]},"viudez":{"icon":"🖤","titulo":"Constancia de Viudez","items":["Cédula de identidad del solicitante.","Acta de matrimonio y acta de defunción del cónyuge."]},"perdida":{"icon":"❓","titulo":"Pérdida de Documentos","items":["Cédula de identidad (o denuncia, si también se extravió).","Descripción de los documentos extraviados."]},"copia":{"icon":"🖨️","titulo":"Entrega de Copias de Actas","items":["Cédula de identidad del solicitante.","Datos del acta: tipo (nacimiento, matrimonio o defunción), número y año."]}};
     (function () {
-      function abrir() {
-        var id = decodeURIComponent(location.hash.slice(1)); if (!id) return;
-        var d = document.getElementById(id);
-        if (d && d.tagName === 'DETAILS') { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      const M = document.getElementById('rqModal');
+      function abrir(k) {
+        const r = REQ[k]; if (!r) return;
+        document.getElementById('rqIc').textContent = r.icon;
+        document.getElementById('rqTitle').textContent = r.titulo;
+        let html = '<ul>' + r.items.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+        if (r.uno) html += '<div class="rq-uno">Además, uno (1) de los siguientes:</div><ul>' + r.uno.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+        if (r.nota) html += '<div class="rq-nota">' + r.nota + '</div>';
+        document.getElementById('rqBody').innerHTML = html;
+        M.classList.add('show'); document.body.style.overflow = 'hidden';
       }
-      window.addEventListener('hashchange', abrir); abrir();
-      document.querySelectorAll('a.card[href^="#req"]').forEach(function (a) {
-        a.addEventListener('click', function () { setTimeout(abrir, 40); });
+      function cerrar() { M.classList.remove('show'); document.body.style.overflow = ''; }
+      document.querySelectorAll('.card[data-req]').forEach(function (c) {
+        c.addEventListener('click', function (e) { e.preventDefault(); abrir(c.getAttribute('data-req')); });
+        c.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(c.getAttribute('data-req')); } });
       });
+      document.getElementById('rqClose').addEventListener('click', cerrar);
+      M.addEventListener('click', function (e) { if (e.target === M) cerrar(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
     })();
   </script>
 </body>
