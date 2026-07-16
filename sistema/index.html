@@ -218,7 +218,7 @@ function construirNav() {
     ["reportes", "📊 Reportes", "Consultas"],
     ["actividad", "🕒 Actividad", "Control"],
   ];
-  if (esAdmin()) items.push(["usuarios", "👥 Usuarios", "Control"]);
+  if (esAdmin()) { items.push(["usuarios", "👥 Usuarios", "Control"]); items.push(["config", "⚙️ Configuración", "Control"]); }
   let html = "", grp = null;
   items.forEach(([id, lbl, g]) => { if (g !== grp) { if (g) html += `<div class="grp">${g}</div>`; grp = g; } html += `<a data-v="${id}" href="#${id}">${lbl}</a>`; });
   $("side").innerHTML = html;
@@ -240,11 +240,16 @@ async function cargarBCV() {
     if (usd && eur) localStorage.setItem("bcv_rc", JSON.stringify({ usd, eur, t: Date.now() }));
   } catch (e) {}
 }
+// Carga los datos del Registrador (editables por el admin) desde rc_config y los mezcla sobre los valores por defecto.
+async function cargarConfig() {
+  try { const { data } = await sb.from("rc_config").select("datos").eq("id", 1).single(); if (data && data.datos) Object.assign(FIRMA, data.datos); } catch (e) {}
+}
 function iniciarApp() {
   $("login").classList.add("hidden"); $("app").classList.remove("hidden");
   $("uNom").textContent = PERFIL.nombre || PERFIL.usuario;
   $("uRol").textContent = esAdmin() ? "Administrador" : "Funcionario";
   construirNav();
+  cargarConfig();
   cargarBCV(); if (!window._bcvInt) window._bcvInt = setInterval(cargarBCV, 108e5);
   window.addEventListener("hashchange", router);
   router();
@@ -262,6 +267,7 @@ function router() {
   else if (v === "legacy") vLegacy();
   else if (v === "actividad") vActividad();
   else if (v === "usuarios") esAdmin() ? vUsuarios() : vInicio();
+  else if (v === "config") esAdmin() ? vConfig() : vInicio();
   else if (v === "form") vForm(arg);
   else if (v === "ver") vVer(arg);
   else vInicio();
@@ -292,6 +298,36 @@ function gridTramites() {
 function vNuevo() {
   $("view").innerHTML = `<h1 class="t">Nuevo trámite</h1><div class="sub">Elige el trámite a registrar.</div><div class="card"><div class="grid-tram">${gridTramites()}</div></div>`;
   $("view").querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
+}
+async function vConfig() {
+  $("view").innerHTML = `<h1 class="t">Configuración</h1><div class="sub">Cargando…</div><div class="spin"></div>`;
+  let cur = { ...FIRMA };
+  try { const { data } = await sb.from("rc_config").select("datos").eq("id", 1).single(); if (data && data.datos) cur = { ...cur, ...data.datos }; } catch (e) {}
+  const F = [
+    ["nombre", "Nombres y apellidos del Registrador(a)", 12],
+    ["cedula", "Documento de identidad", 6],
+    ["oficina", "Oficina o Unidad de Registro Civil", 6],
+    ["resolucion", "Resolución N°", 6],
+    ["resolucion_fecha", "Fecha de la resolución", 6],
+    ["gaceta", "Gaceta Municipal N°", 6],
+    ["gaceta_fecha", "Fecha de la gaceta", 6],
+  ];
+  $("view").innerHTML = `<h1 class="t">Configuración</h1><div class="sub">Datos del Registrador(a) Civil que aparecen en todas las actas y constancias (Sección A y firma). Solo el administrador puede cambiarlos; el cambio aplica a los documentos que se generen de aquí en adelante.</div>
+    <div class="card"><div class="form-grid">
+      ${F.map(([k, l, w]) => `<div class="fld w${w}"><label>${esc(l)}</label><input type="text" data-cfg="${k}" value="${esc(cur[k] || "")}"></div>`).join("")}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap"><button class="btn g" id="cfgSave">💾 Guardar cambios</button></div></div>`;
+  $("cfgSave").onclick = async () => {
+    const datos = {}; $("view").querySelectorAll("[data-cfg]").forEach(el => datos[el.dataset.cfg] = (el.value || "").trim());
+    if (!datos.nombre) { toast("El nombre del Registrador es obligatorio."); return; }
+    $("cfgSave").disabled = true; $("cfgSave").textContent = "Guardando…";
+    const { error } = await sb.from("rc_config").update({ datos, updated_at: new Date().toISOString() }).eq("id", 1);
+    if (error) { toast("Error: " + error.message); $("cfgSave").disabled = false; $("cfgSave").textContent = "💾 Guardar cambios"; return; }
+    Object.assign(FIRMA, datos);
+    await registrar("editar", null, null, "Actualizó los datos del Registrador Civil");
+    toast("Datos guardados. Aplican a las nuevas actas y constancias.");
+    $("cfgSave").disabled = false; $("cfgSave").textContent = "💾 Guardar cambios";
+  };
 }
 async function vReportes() {
   $("view").innerHTML = `<h1 class="t">Reportes</h1><div class="sub">Estadísticas de los trámites y actas.</div><div class="card"><div class="spin"></div></div>`;
@@ -702,7 +738,7 @@ $("modalBg").addEventListener("click", e => { if (e.target === $("modalBg")) $("
 
 /* ---- Impresión de constancia ---- */
 // ===== Generación de PDF fiel al formato del PHP (FPDF/CNE) =====
-const FIRMA = { nombre: "Emperatriz García Ponte", cedula: "V-6.216.949", resolucion: "HM-013-2019", gaceta: "N°24", fecha_res: "22/03/2019" };
+let FIRMA = { nombre: "Emperatriz García Ponte", cedula: "V-6.216.949", oficina: "Charallave, Estado Miranda", resolucion: "HM-013-2019", resolucion_fecha: "22/03/2019", gaceta: "N°24", gaceta_fecha: "20/03/2019" };
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 function fechaLarga(d) {
   if (!d) d = new Date();
@@ -721,50 +757,116 @@ function firma(doc, y) {
   doc.text("Registradora Civil del Municipio Cristóbal Rojas", W / 2, y + 9.5, { align: "center" });
   doc.text("C.I. " + FIRMA.cedula + " · Resolución N° " + FIRMA.resolucion + " · Gaceta " + FIRMA.gaceta, W / 2, y + 13.5, { align: "center" });
 }
+// Dibuja una grilla de celdas enmarcadas (etiqueta chica arriba, valor abajo), rellenando cada fila de borde a borde segun los anchos (w 1..12). Devuelve la nueva y.
+function drawGrid(doc, fields, x0, y, W) {
+  const H = doc.internal.pageSize.getHeight(), pad = 1.6;
+  let i = 0;
+  while (i < fields.length) {
+    const row = []; let wsum = 0;
+    while (i < fields.length) {
+      const w = fields[i].w > 0 ? Math.min(fields[i].w, 12) : 6;
+      if (row.length && wsum + w > 12) break;
+      row.push({ l: fields[i].l, v: fields[i].v, w }); wsum += w; i++;
+      if (wsum >= 12) break;
+    }
+    doc.setFontSize(9);
+    let rowH = 8.5;
+    row.forEach(c => {
+      const cw = (c.w / wsum) * W - 2 * pad;
+      c._v = doc.splitTextToSize(String(c.v == null ? "" : c.v), Math.max(cw, 8));
+      const h = 4 + c._v.length * 3.7 + 1.6;
+      if (h > rowH) rowH = h;
+    });
+    if (y + rowH > H - 40) { doc.addPage(); y = 18; }
+    let cx = x0;
+    row.forEach(c => {
+      const cw = (c.w / wsum) * W;
+      doc.setDrawColor(150); doc.setLineWidth(0.2); doc.rect(cx, y, cw, rowH);
+      doc.setFont("times", "bold"); doc.setFontSize(6.6); doc.setTextColor(95);
+      doc.text(String(c.l).toUpperCase(), cx + pad, y + 3);
+      doc.setFont("times", "normal"); doc.setFontSize(9); doc.setTextColor(0);
+      doc.text(c._v, cx + pad, y + 6.4);
+      cx += cw;
+    });
+    y += rowH;
+  }
+  return y;
+}
+function bloqueFirmas(doc, y) {
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15;
+  if (y + 66 > H - 10) { doc.addPage(); y = 20; } else y += 12;
+  const xL = MX + (RX - MX) * 0.25, xR = MX + (RX - MX) * 0.75;
+  doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.3);
+  const par = (yy, a, b) => {
+    doc.line(xL - 28, yy, xL + 28, yy); doc.line(xR - 28, yy, xR + 28, yy);
+    doc.setFont("times", "normal"); doc.setFontSize(8.5); doc.setTextColor(0);
+    doc.text(a, xL, yy + 4, { align: "center" }); doc.text(b, xR, yy + 4, { align: "center" });
+  };
+  par(y, "Firma del Declarante", "Firma del Declarante");
+  doc.setFontSize(7); doc.setTextColor(90); doc.text("Impresión Dactilar", xL + 31, y + 2); doc.text("Impresión Dactilar", xR + 31, y + 2);
+  y += 22; par(y, "Firma del Registrador(a)", "Sello Húmedo");
+  y += 22; par(y, "Firma del Testigo", "Firma del Testigo");
+  y += 15;
+  doc.setDrawColor(0); doc.line(W / 2 - 34, y, W / 2 + 34, y);
+  doc.setFont("times", "bold"); doc.setFontSize(9.5); doc.setTextColor(0); doc.text(FIRMA.nombre, W / 2, y + 4.5, { align: "center" });
+  doc.setFont("times", "normal"); doc.setFontSize(8);
+  doc.text("Registradora Civil del Municipio Cristóbal Rojas · C.I. " + FIRMA.cedula, W / 2, y + 8.5, { align: "center" });
+  doc.text("Resolución N° " + FIRMA.resolucion + " · Gaceta " + FIRMA.gaceta, W / 2, y + 12, { align: "center" });
+}
 function generarActaPDF(r) {
-  const cfg = TRAMITES[r.tipo], doc = nuevoDoc();
-  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 18, RX = W - 15;
+  const cfg = TRAMITES[r.tipo], doc = nuevoDoc(), d = r.datos || {};
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15, CW = RX - MX;
   tricolor(doc);
   let y = 13;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(0, 0, 0);
-  doc.text(String(r.numero_acta || ""), RX, y, { align: "right" });
-  doc.setFont("times", "normal"); doc.setFontSize(10.5);
-  ["República Bolivariana de Venezuela", "Consejo Nacional Electoral", "Comisión de Registro Civil y Electoral", "Estado Bolivariano de Miranda", "Municipio Cristóbal Rojas", "Parroquia Charallave"].forEach((t, i) => doc.text(t, MX, y + i * 5));
+  doc.setFont("times", "normal"); doc.setFontSize(10); doc.setTextColor(0);
+  ["República Bolivariana de Venezuela", "Consejo Nacional Electoral", "Comisión de Registro Civil y Electoral", "Estado Bolivariano de Miranda", "Municipio Cristóbal Rojas", "Parroquia Charallave"].forEach((t, i) => doc.text(t, MX, y + i * 4.6));
+  doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.text(String(r.numero_acta || ""), RX, y, { align: "right" });
   const fp = (r.fecha || "").split("-");
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
-  const rl = RX - 42, ry = y + 15;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  const rl = RX - 34, ry = y + 8;
   doc.text("ACTA N°  " + (r.numero_acta || ""), rl, ry);
-  doc.text("DÍA  " + (fp[2] || ""), rl, ry + 5); doc.text("MES  " + (fp[1] || ""), rl, ry + 10); doc.text("AÑO  " + (fp[0] || r.ano || ""), rl, ry + 15);
-  y += 34;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-  doc.text("REGISTRO — " + cfg.label.toUpperCase(), MX, y); y += 7;
-  let letra = 65;
-  const salto = (need) => { if (y + need > H - 16) { doc.addPage(); y = 18; } };
+  doc.text("DÍA  " + (fp[2] || ""), rl, ry + 4.6); doc.text("MES  " + (fp[1] || ""), rl, ry + 9.2); doc.text("AÑO  " + (fp[0] || r.ano || ""), rl, ry + 13.8);
+  y += 30;
+  doc.setFillColor(10, 35, 81); doc.rect(MX, y, CW, 7, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(255);
+  doc.text("REGISTRO DE " + cfg.label.replace(/^Acta de\s+/i, "").toUpperCase(), W / 2, y + 4.9, { align: "center" });
+  doc.setTextColor(0); y += 9;
+  const regFields = [
+    { l: "Nombres y Apellidos", v: FIRMA.nombre, w: 12 },
+    { l: "Documento de Identidad", v: FIRMA.cedula, w: 6 },
+    { l: "Oficina o Unidad de Registro Civil", v: FIRMA.oficina, w: 6 },
+    { l: "Resolución N°", v: FIRMA.resolucion, w: 3 },
+    { l: "Fecha", v: FIRMA.resolucion_fecha, w: 3 },
+    { l: "Gaceta Municipal N°", v: FIRMA.gaceta, w: 3 },
+    { l: "Fecha", v: FIRMA.gaceta_fecha, w: 3 },
+  ];
+  doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5, "FD");
+  doc.setFont("times", "bold"); doc.setFontSize(8.6); doc.setTextColor(0); doc.text("A- Datos del Registrador(a) Civil", MX + 2, y + 3.8);
+  y += 5.5; y = drawGrid(doc, regFields, MX, y, CW); y += 2.5;
+  let letra = 66;
   cfg.secciones.forEach(sec => {
-    const filas = sec.rep
-      ? (Array.isArray((r.datos || {})[sec.rep.key]) ? (r.datos || {})[sec.rep.key] : []).flatMap((it, i) => sec.rep.campos.map(c => [sec.rep.singular + " " + (i + 1) + " · " + c.l, it[c.n]])).filter(x => x[1] != null && String(x[1]).trim() !== "")
-      : sec.campos.map(c => [c.l, (r.datos || {})[c.n]]).filter(x => x[1] != null && String(x[1]).trim() !== "");
     const L = String.fromCharCode(letra); letra++;
-    if (!filas.length) return;
-    salto(12);
-    doc.setFillColor(222, 222, 222); doc.setDrawColor(120); doc.setLineWidth(0.2);
-    doc.rect(MX, y, RX - MX, 6, "FD");
-    doc.setFont("times", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-    doc.text(L + ".  " + sec.t, MX + 2, y + 4.2);
-    y += 7.5;
-    doc.setFontSize(9.5);
-    filas.forEach(([k, v]) => {
-      doc.setFont("times", "bold"); const lbl = k + ": ";
-      const lw = doc.getTextWidth(lbl);
-      const vl = doc.splitTextToSize(String(v), RX - MX - 3 - lw);
-      salto(vl.length * 4.4 + 3);
-      doc.setFont("times", "bold"); doc.text(lbl, MX + 2, y);
-      doc.setFont("times", "normal"); doc.text(vl, MX + 2 + lw, y);
-      y += vl.length * 4.4 + 2.2;
-    });
-    y += 3;
+    if (y + 12 > H - 40) { doc.addPage(); y = 18; }
+    doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5, "FD");
+    doc.setFont("times", "bold"); doc.setFontSize(8.6); doc.setTextColor(0); doc.text(L + "- " + sec.t, MX + 2, y + 3.8);
+    y += 5.5;
+    if (sec.rep) {
+      const items = Array.isArray(d[sec.rep.key]) ? d[sec.rep.key] : [];
+      if (!items.length) { y = drawGrid(doc, sec.rep.campos.map(c => ({ l: c.l, v: "", w: c.w })), MX, y, CW); }
+      else items.forEach((it, idx) => {
+        if (y + 5 > H - 40) { doc.addPage(); y = 18; }
+        doc.setFillColor(244, 244, 244); doc.setDrawColor(160); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 4.6, "FD");
+        doc.setFont("times", "bold"); doc.setFontSize(7.2); doc.setTextColor(70);
+        doc.text(sec.rep.singular.charAt(0).toUpperCase() + sec.rep.singular.slice(1) + " " + (idx + 1), MX + 2, y + 3.2);
+        y += 4.6;
+        y = drawGrid(doc, sec.rep.campos.map(c => ({ l: c.l, v: it[c.n], w: c.w })), MX, y, CW);
+      });
+    } else {
+      y = drawGrid(doc, sec.campos.map(c => ({ l: c.l, v: d[c.n], w: c.w })), MX, y, CW);
+    }
+    y += 2.5;
   });
-  firma(doc, y);
+  bloqueFirmas(doc, y);
   return doc;
 }
 function narrativa(r) {
