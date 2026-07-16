@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sistema · Registro Civil — Alcaldía de Cristóbal Rojas</title>
+<style>
+  :root{--navy:#0a2351;--navy2:#123571;--blue:#0a6cb0;--gold:#f4c20d;--red:#d21534;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#eef2f7;--surface:#fff;--ok:#16a34a;--r:12px;--sans:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none;}
+  button{font:inherit;cursor:pointer;}
+  input,select,textarea{font:inherit;width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:var(--ink);outline:none;}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue);background:#fff;}
+  textarea{min-height:64px;resize:vertical;}
+  .hidden{display:none!important;}
+  .tri{height:5px;display:flex}.tri i{flex:1}.tri i:nth-child(1){background:var(--gold)}.tri i:nth-child(2){background:var(--blue)}.tri i:nth-child(3){background:var(--red)}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;}
+  .btn:hover{background:var(--navy2)}
+  .btn.g{background:var(--ok)}.btn.g:hover{filter:brightness(1.06)}
+  .btn.r{background:#fee2e2;color:#b91c1c}.btn.r:hover{background:#fecaca}
+  .btn.o{background:#fff;color:var(--navy);border:1px solid #cbd5e1}.btn.o:hover{background:#f1f5f9}
+  .btn.sm{padding:6px 11px;font-size:12.5px}
+  /* login */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,#0a2351,#071a3d);}
+  .card-login{background:#fff;border-radius:16px;box-shadow:0 30px 70px rgba(0,0,0,.4);width:100%;max-width:400px;overflow:hidden;}
+  .card-login .hd{background:var(--navy);color:#fff;padding:26px 26px 22px;text-align:center;}
+  .card-login .hd svg{margin:0 auto 8px}
+  .card-login .hd b{display:block;font-size:16px;font-weight:850}
+  .card-login .hd span{display:block;font-size:12px;color:#aebfdf;margin-top:2px}
+  .card-login .bd{padding:24px}
+  .card-login label{display:block;font-size:12.5px;font-weight:700;color:#334155;margin:12px 0 5px}
+  .card-login .msg{font-size:13px;border-radius:8px;padding:9px 11px;margin-top:14px;display:none}
+  .card-login .msg.err{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;display:block}
+  .card-login .msg.ok{background:#f0fdf4;color:#15803d;border:1px solid #86efac;display:block}
+  /* app shell */
+  .top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:0 16px;height:56px;position:sticky;top:0;z-index:30}
+  .top .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px}
+  .top .brand span{font-size:11px;color:#aebfdf;font-weight:600}
+  .top .sp{flex:1}
+  .top .u{font-size:13px;color:#dbe4f5}.top .u b{color:#fff}
+  .top .pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+  .menu-btn{display:none;background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:8px;width:38px;height:38px;font-size:18px}
+  .wrap{display:flex;min-height:calc(100vh - 61px)}
+  .side{width:230px;background:#fff;border-right:1px solid var(--line);padding:14px 10px;flex:none}
+  .side a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:14px;font-weight:650;color:#334155;margin-bottom:2px}
+  .side a:hover{background:#f1f5f9}
+  .side a.on{background:var(--navy);color:#fff}
+  .side .grp{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:12px 12px 5px}
+  .main{flex:1;padding:22px;max-width:1100px;min-width:0}
+  h1.t{font-size:22px;font-weight:850;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:2px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 2px rgba(11,23,48,.05),0 8px 24px rgba(11,23,48,.05);padding:18px;margin-top:16px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px}
+  .stat b{display:block;font-size:26px;font-weight:850;color:var(--navy)}
+  .stat span{font-size:12.5px;color:var(--muted);font-weight:600}
+  .grid-tram{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}
+  .tram-b{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;text-align:left;transition:.14s;display:flex;gap:11px;align-items:center}
+  .tram-b:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 10px 24px rgba(10,35,81,.1)}
+  .tram-b .ic{width:38px;height:38px;border-radius:9px;background:#e6f0fb;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+  .tram-b b{font-size:13.5px;font-weight:750;display:block}.tram-b small{color:var(--muted);font-size:11px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid #eef2f7;font-size:13px;vertical-align:top}
+  th{background:var(--navy);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0}
+  tbody tr:hover{background:#f8fafc}
+  .badge{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+  .badge.leg{background:#fef9c3;color:#854d0e}.badge.mine{background:#e6f0fb;color:#0a6cb0}.badge.a{background:#dcfce7;color:#15803d}
+  .filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .filtros input,.filtros select{width:auto;min-width:150px}
+  .form-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+  .fld{display:flex;flex-direction:column;gap:4px}
+  .fld label{font-size:12px;font-weight:700;color:#475569}
+  .sec-t{grid-column:1/-1;font-size:13px;font-weight:800;color:var(--navy);border-bottom:2px solid var(--gold);padding-bottom:5px;margin-top:8px;text-transform:uppercase;letter-spacing:.03em}
+  .w2{grid-column:span 2}.w3{grid-column:span 3}.w4{grid-column:span 4}.w6{grid-column:span 6}.w12{grid-column:span 12}
+  @media(max-width:760px){.w2,.w3,.w4,.w6{grid-column:span 6}.side{position:fixed;left:0;top:56px;bottom:0;z-index:25;transform:translateX(-100%);transition:.2s;box-shadow:0 10px 40px rgba(0,0,0,.2)}.side.open{transform:none}.menu-btn{display:block}.main{padding:16px}}
+  .modal-bg{position:fixed;inset:0;background:rgba(8,15,30,.55);display:none;align-items:flex-start;justify-content:center;padding:24px;z-index:50;overflow:auto}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:820px;width:100%;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:600;z-index:80;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none}
+  .fila{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+  .fila .k{font-weight:700;color:#475569;min-width:190px}
+  .empty{text-align:center;color:var(--muted);padding:34px}
+  .spin{width:30px;height:30px;border:3px solid #dbe4f5;border-top-color:var(--navy);border-radius:50%;animation:sp 1s linear infinite;margin:30px auto}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login">
+  <div class="card-login">
+    <div class="tri"><i></i><i></i><i></i></div>
+    <div class="hd">
+      <svg viewBox="0 0 48 56" width="40" height="46"><path d="M24 2 44 9v20c0 13-9 21-20 25C13 50 4 42 4 29V9z" fill="#123571" stroke="#f4c20d" stroke-width="2"/><path d="M24 12l2.6 5.6 6 .8-4.4 4.3 1.1 6L24 31.9 18.7 34.7l1.1-6-4.4-4.3 6-.8z" fill="#f4c20d"/></svg>
+      <b>Registro Civil</b><span>Alcaldía del Municipio Cristóbal Rojas</span>
+    </div>
+    <div class="bd">
+      <div id="loginView">
+        <label>Usuario</label>
+        <input id="lgUser" autocomplete="username" placeholder="ej: carolina.garcia" />
+        <label>Contraseña</label>
+        <input id="lgPass" type="password" autocomplete="current-password" placeholder="••••••" />
+        <div class="msg" id="lgMsg"></div>
+        <button class="btn" id="lgBtn" style="width:100%;justify-content:center;margin-top:16px">Ingresar</button>
+      </div>
+      <div id="changeView" class="hidden">
+        <p style="font-size:13.5px;color:#475569;margin-bottom:6px">Por seguridad debes <b>cambiar tu contraseña</b> antes de continuar.</p>
+        <label>Nueva contraseña</label>
+        <input id="np1" type="password" placeholder="mínimo 6 caracteres" />
+        <label>Repite la nueva contraseña</label>
+        <input id="np2" type="password" />
+        <div class="msg" id="cpMsg"></div>
+        <button class="btn g" id="cpBtn" style="width:100%;justify-content:center;margin-top:16px">Guardar y entrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" class="hidden">
+  <div class="tri"><i></i><i></i><i></i></div>
+  <div class="top">
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <div class="brand"><svg viewBox="0 0 48 56" width="24" height="28"><path d="M24 2 44 9v20c0 13-9 21-20 25C13 50 4 42 4 29V9z" fill="#fff" stroke="#f4c20d" stroke-width="2"/><path d="M24 12l2.6 5.6 6 .8-4.4 4.3 1.1 6L24 31.9 18.7 34.7l1.1-6-4.4-4.3 6-.8z" fill="#f4c20d"/></svg><div>Registro Civil<span style="display:block">Cristóbal Rojas</span></div></div>
+    <div class="sp"></div>
+    <span class="u">Hola, <b id="uNom">—</b></span>
+    <span class="pill" id="uRol">—</span>
+    <button class="btn o sm" id="btnSalir">Salir</button>
+  </div>
+  <div class="wrap">
+    <nav class="side" id="side"></nav>
+    <main class="main" id="view"><div class="spin"></div></main>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPA_URL = "https://hcokzgmvoatmnmiefffv.supabase.co";
+const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhjb2t6Z212b2F0bW5taWVmZmZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NjA0OTUsImV4cCI6MjA5OTUzNjQ5NX0.Iy5xlMz_cDkhHWaTU_L8ot5P9ReW6m9TQ4GcBrAiz0A";
+const DOM = "@regcivil.alcaldiadecharallave.com";
+const sb = createClient(SUPA_URL, SUPA_ANON);
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
+let PERFIL = null, USER = null;
+
+/* ============ CATÁLOGO DE TRÁMITES ============ */
+const EST = ["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Vargas","La Guaira","Yaracuy","Zulia"];
+const ECIV = ["Soltero","Soltera","Casado","Casada","Divorciado","Divorciada","Viudo","Viuda","Concubino","Concubina"];
+const NAC = ["Venezolano","Venezolana","Extranjero","Extranjera","Nacionalizado","Nacionalizada"];
+const f = (n, l, t, o, w) => ({ n, l, t: t || "t", o, w: w || 6 });
+const S = (t, campos) => ({ t, campos });
+// tipos de campo: t(texto) ta(área) date num sel ced(cédula)
+const TRAMITES = {
+  nacimiento: { label: "Acta de Nacimiento", grupo: "Actos registrales", icon: "👶", num: true, titular: ["nombres_n","apellidos_n"], ced: "cedula_n", secciones: [
+    S("Datos del acta", [f("fecha_acto","Fecha del acto","date",0,4), f("tipo_acta","Tipo","sel",["Nacimiento","Reconocimiento","Inserción"],4)]),
+    S("Presentado (niño/a)", [f("nombres_n","Nombres",0,0,4), f("apellidos_n","Apellidos",0,0,4), f("genero","Género","sel",["Masculino","Femenino"],4), f("fecha_nac","Fecha de nacimiento","date",0,4), f("hora_nac","Hora","t",0,4), f("lugar_nac","Lugar de nacimiento",0,0,4), f("estado_nac","Estado","sel",EST,6), f("municipio_nac","Municipio / Parroquia",0,0,6)]),
+    S("Certificado médico", [f("certificado","N° certificado",0,0,4), f("centro_salud","Centro de salud",0,0,8)]),
+    S("Madre", [f("nombres_m","Nombres y apellidos",0,0,6), f("cedula_m","Cédula","ced",0,3), f("nacionalidad_m","Nacionalidad","sel",NAC,3), f("profesion_madre","Profesión",0,0,6), f("direccion_madre","Dirección",0,0,6)]),
+    S("Padre", [f("nombres_p","Nombres y apellidos",0,0,6), f("cedula_p","Cédula","ced",0,3), f("nacionalidad_p","Nacionalidad","sel",NAC,3), f("profesion_padre","Profesión",0,0,6), f("direccion_padre","Dirección",0,0,6)]),
+    S("Testigos", [f("t1_nombre","Testigo 1 · nombre",0,0,6), f("t1_cedula","Testigo 1 · cédula","ced",0,6), f("t2_nombre","Testigo 2 · nombre",0,0,6), f("t2_cedula","Testigo 2 · cédula","ced",0,6)]),
+    S("Observaciones", [f("observaciones","Observaciones","ta",0,12)]),
+  ]},
+  matrimonio: { label: "Acta de Matrimonio", grupo: "Actos registrales", icon: "💍", num: true, titular: ["nombres_a","nombres_b"], ced: "cedula_a", secciones: [
+    S("Datos del acto", [f("fecha_acto","Fecha del acto","date",0,4), f("hora_acto","Hora",0,0,4), f("lugar_acto","Lugar del acto",0,0,4)]),
+    S("Cónyuge 1", [f("nombres_a","Nombres y apellidos",0,0,6), f("cedula_a","Cédula","ced",0,3), f("fecha_nac_a","Fecha de nacimiento","date",0,3), f("nacionalidad_a","Nacionalidad","sel",NAC,4), f("profesion_a","Profesión",0,0,4), f("estado_nac_a","Estado de nacimiento","sel",EST,4)]),
+    S("Cónyuge 2", [f("nombres_b","Nombres y apellidos",0,0,6), f("cedula_b","Cédula","ced",0,3), f("fecha_nac_b","Fecha de nacimiento","date",0,3), f("nacionalidad_b","Nacionalidad","sel",NAC,4), f("profesion_b","Profesión",0,0,4), f("estado_nac_b","Estado de nacimiento","sel",EST,4)]),
+    S("Testigos", [f("t1_nombre","Testigo 1 · nombre",0,0,6), f("t1_cedula","Testigo 1 · cédula","ced",0,6), f("t2_nombre","Testigo 2 · nombre",0,0,6), f("t2_cedula","Testigo 2 · cédula","ced",0,6)]),
+    S("Observaciones", [f("observaciones","Observaciones","ta",0,12)]),
+  ]},
+  defuncion: { label: "Acta de Defunción", grupo: "Actos registrales", icon: "🕊️", num: true, titular: ["nombres_f","apellidos_f"], ced: "cedula_f", secciones: [
+    S("Datos del acta", [f("fecha_acto","Fecha del acto","date",0,4), f("tipo_acta","Tipo","sel",["Defunción","Inserción de Defunción"],4)]),
+    S("Fallecido/a", [f("nombres_f","Nombres",0,0,4), f("apellidos_f","Apellidos",0,0,4), f("genero","Género","sel",["Masculino","Femenino"],4), f("cedula_f","Cédula","ced",0,4), f("fecha_nac_f","Fecha de nacimiento","date",0,4), f("nacionalidad_f","Nacionalidad","sel",NAC,4), f("direccion_f","Dirección",0,0,12)]),
+    S("Datos de la defunción", [f("fecha_def","Fecha","date",0,4), f("hora_def","Hora",0,0,4), f("parroquia_def","Parroquia",0,0,4), f("municipio_def","Municipio",0,0,4), f("estado_def","Estado","sel",EST,4), f("causas","Causas de la muerte","ta",0,12)]),
+    S("Certificado", [f("certificado_def","N° certificado",0,0,4), f("autoridad_cert","Autoridad certificante",0,0,8)]),
+    S("Declarante / Exponente", [f("nombres_dec","Nombres y apellidos",0,0,6), f("cedula_dec","Cédula","ced",0,3), f("profesion_dec","Profesión",0,0,3)]),
+    S("Observaciones", [f("observaciones","Observaciones","ta",0,12)]),
+  ]},
+  union_estable: { label: "Unión Estable de Hecho", grupo: "Actos registrales", icon: "🤝", num: true, titular: ["nombres_a","nombres_b"], ced: "cedula_a", secciones: [
+    S("Datos del acta", [f("fecha_acto","Fecha del acto","date",0,4), f("tiempo_convivencia","Tiempo de convivencia",0,0,4), f("n_hijos","N° de hijos","num",0,4)]),
+    S("Ciudadano", [f("nombres_a","Nombres y apellidos",0,0,6), f("cedula_a","Cédula","ced",0,3), f("fecha_nac_a","Fecha de nacimiento","date",0,3), f("estado_civil_a","Estado civil","sel",ECIV,4), f("profesion_a","Profesión",0,0,4), f("direccion_a","Dirección",0,0,4)]),
+    S("Ciudadana", [f("nombres_b","Nombres y apellidos",0,0,6), f("cedula_b","Cédula","ced",0,3), f("fecha_nac_b","Fecha de nacimiento","date",0,3), f("estado_civil_b","Estado civil","sel",ECIV,4), f("profesion_b","Profesión",0,0,4), f("direccion_b","Dirección",0,0,4)]),
+    S("Testigos", [f("t1_nombre","Testigo 1 · nombre",0,0,6), f("t1_cedula","Testigo 1 · cédula","ced",0,6), f("t2_nombre","Testigo 2 · nombre",0,0,6), f("t2_cedula","Testigo 2 · cédula","ced",0,6)]),
+    S("Hijos / Observaciones", [f("hijos","Hijos (nombres)","ta",0,6), f("observaciones","Observaciones","ta",0,6)]),
+  ]},
+  disolucion: { label: "Disolución de Unión Estable", grupo: "Actos registrales", icon: "📄", num: true, titular: ["nombres_a","nombres_b"], ced: "cedula_a", secciones: [
+    S("Datos", [f("tipo_dis","Tipo","sel",["Voluntad Conjunta","Voluntad Unilateral"],4), f("fecha_acto","Fecha del acto","date",0,4)]),
+    S("Acta original de la unión", [f("acta_original","N° de acta original",0,0,4), f("fecha_original","Fecha del acta original","date",0,4), f("oficina_original","Oficina de registro",0,0,4)]),
+    S("Parte A", [f("nombres_a","Nombres y apellidos",0,0,6), f("cedula_a","Cédula","ced",0,6)]),
+    S("Parte B", [f("nombres_b","Nombres y apellidos",0,0,6), f("cedula_b","Cédula","ced",0,6)]),
+    S("Observaciones", [f("observaciones","Observaciones","ta",0,12)]),
+  ]},
+  naturalizacion: { label: "Acta de Naturalización", grupo: "Actos registrales", icon: "🌐", num: true, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Datos", [f("modelo","Modelo","sel",["Modelo I","Modelo II"],4), f("fecha_acto","Fecha del acto","date",0,4)]),
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula (E-)","ced",0,3), f("fecha_nac","Fecha de nacimiento","date",0,3), f("lugar_nac","Lugar de nacimiento",0,0,6), f("nacionalidad","Nacionalidad de origen",0,0,6), f("condicion","Condición de entrada",0,0,6), f("tiempo_res","Tiempo de residencia",0,0,3), f("residencia","Residencia actual",0,0,3)]),
+    S("Cónyuge / hijos", [f("nombres_c","Cónyuge · nombre",0,0,6), f("cedula_c","Cónyuge · cédula","ced",0,6), f("hijos","Hijos","ta",0,12)]),
+  ]},
+  // ---- Constancias ----
+  fe_vida: { label: "Fe de Vida", grupo: "Constancias", icon: "📝", num: false, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,3), f("fecha_nac","Fecha de nacimiento","date",0,3), f("nacionalidad","Nacionalidad","sel",NAC,4), f("estado_civil","Estado civil","sel",ECIV,4), f("profesion","Profesión",0,0,4), f("direccion","Dirección",0,0,12)]),
+  ]},
+  residencia: { label: "Carta de Residencia", grupo: "Constancias", icon: "🏠", num: false, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,6), f("tiempo","Tiempo de residencia","num",0,3), f("indicador","Unidad","sel",["Meses","Años"],3), f("organo","Órgano que avala","sel",["Consejo Comunal","Junta de Condominio","Asociación de Vecinos","Junta Parroquial"],6), f("direccion","Dirección",0,0,12)]),
+  ]},
+  solteria: { label: "Carta de Soltería", grupo: "Constancias", icon: "💐", num: false, titular: ["nombres","apellidos"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres",0,0,6), f("apellidos","Apellidos",0,0,6), f("cedula","Cédula","ced",0,4), f("fecha_nac","Fecha de nacimiento","date",0,4), f("profesion","Profesión",0,0,4), f("direccion","Dirección",0,0,12)]),
+  ]},
+  buena_conducta: { label: "Carta de Buena Conducta", grupo: "Constancias", icon: "⭐", num: false, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,3), f("fecha_nac","Fecha de nacimiento","date",0,3), f("estado_civil","Estado civil","sel",ECIV,4), f("profesion","Profesión",0,0,4), f("organo","Órgano que avala","sel",["Consejo Comunal","Junta de Condominio","Asociación de Vecinos","Junta Parroquial"],4), f("direccion","Dirección",0,0,12)]),
+  ]},
+  perdida: { label: "Pérdida de Documentos", grupo: "Constancias", icon: "❓", num: false, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,3), f("nacionalidad","Nacionalidad","sel",NAC,3), f("estado_civil","Estado civil","sel",ECIV,4), f("profesion","Profesión",0,0,4), f("direccion","Dirección",0,0,4)]),
+    S("Documentos extraviados", [f("documentos","Documentos","ta",0,12)]),
+  ]},
+  expensa: { label: "Constancia de Expensa", grupo: "Constancias", icon: "💰", num: false, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,3), f("estado_civil","Estado civil","sel",ECIV,3), f("fecha_nac","Fecha de nacimiento","date",0,4)]),
+    S("Tutor / representante", [f("nombres_t","Nombres y apellidos",0,0,6), f("cedula_t","Cédula","ced",0,6)]),
+  ]},
+  manutencion: { label: "Constancia de Manutención", grupo: "Constancias", icon: "🍼", num: false, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,3), f("fecha_nac","Fecha de nacimiento","date",0,3), f("nacionalidad","Nacionalidad","sel",NAC,3), f("estado_civil","Estado civil","sel",ECIV,3)]),
+    S("Tutor / representante", [f("nombres_t","Nombres y apellidos",0,0,6), f("cedula_t","Cédula","ced",0,6)]),
+  ]},
+  viudez: { label: "Constancia de Viudez", grupo: "Constancias", icon: "🖤", num: false, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Solicitante", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,3), f("fecha_nac","Fecha de nacimiento","date",0,3), f("profesion","Profesión",0,0,4), f("fecha_viudez","Fecha de viudez","date",0,4), f("direccion","Dirección",0,0,4)]),
+    S("Cónyuge fallecido", [f("nombres2","Nombres y apellidos",0,0,6), f("cedula_f","Cédula","ced",0,3), f("fecha_mat","Fecha de matrimonio","date",0,3)]),
+  ]},
+  // ---- Permisos ----
+  permiso: { label: "Permiso de Cementerio", grupo: "Permisos", icon: "⚰️", num: true, titular: ["nombres"], ced: "cedula", secciones: [
+    S("Datos del permiso", [f("tipo_permiso","Tipo","sel",["Enterramiento","Cremación","Exhumación"],4), f("certificado","N° certificado de defunción",0,0,4), f("cementerio","Cementerio","sel",["Parque Valles del Tuy","Cementerio Municipal"],4)]),
+    S("Difunto", [f("nombres","Nombres y apellidos",0,0,6), f("cedula","Cédula","ced",0,3), f("fecha_nac","Fecha de nacimiento","date",0,3), f("fecha_def","Fecha de defunción","date",0,4), f("nacionalidad","Nacionalidad","sel",NAC,4), f("direccion","Dirección",0,0,4), f("causas","Causa de la muerte","ta",0,8), f("medico","Médico",0,0,4)]),
+  ]},
+  copia_acta: { label: "Entrega de Copias", grupo: "Otros", icon: "🖨️", num: false, titular: ["solicitante"], ced: "cedula_solicitante", secciones: [
+    S("Datos", [f("tipo_copia","Tipo de acta","sel",["Nacimiento","Matrimonio","Defunción"],4), f("n_acta","N° de acta",0,0,4), f("ano_acta","Año","num",0,4), f("copias","N° de copias","num",0,4), f("solicitante","Solicitante",0,0,4), f("cedula_solicitante","Cédula solicitante","ced",0,4)]),
+  ]},
+};
+const tipoLabel = (t) => (TRAMITES[t] && TRAMITES[t].label) || (t === "acta_legacy" ? "Acta pre-cargada" : t);
+
+/* ============ AUTH ============ */
+async function cargarPerfil() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return null;
+  USER = user;
+  const { data } = await sb.from("rc_perfiles").select("*").eq("id", user.id).single();
+  PERFIL = data; return data;
+}
+async function registrar(accion, tipo, tramite_id, resumen, detalle) {
+  try { await sb.from("rc_bitacora").insert({ actor: USER.id, actor_usuario: PERFIL.usuario, accion, tipo: tipo || null, tramite_id: tramite_id || null, resumen, detalle: detalle || null }); } catch (e) {}
+}
+$("lgBtn").onclick = async () => {
+  const u = ($("lgUser").value || "").trim().toLowerCase().replace(/@.*$/, "");
+  const p = $("lgPass").value;
+  const msg = $("lgMsg"); msg.className = "msg";
+  if (!u || !p) { msg.className = "msg err"; msg.textContent = "Ingresa usuario y contraseña."; return; }
+  $("lgBtn").disabled = true; $("lgBtn").textContent = "Ingresando…";
+  const { error } = await sb.auth.signInWithPassword({ email: u + DOM, password: p });
+  $("lgBtn").disabled = false; $("lgBtn").textContent = "Ingresar";
+  if (error) { msg.className = "msg err"; msg.textContent = "Usuario o contraseña incorrectos."; return; }
+  await cargarPerfil();
+  await registrar("login", null, null, "Inició sesión");
+  if (PERFIL && PERFIL.must_change_password) { $("loginView").classList.add("hidden"); $("changeView").classList.remove("hidden"); }
+  else iniciarApp();
+};
+$("lgPass").addEventListener("keydown", e => { if (e.key === "Enter") $("lgBtn").click(); });
+$("cpBtn").onclick = async () => {
+  const a = $("np1").value, b = $("np2").value, msg = $("cpMsg"); msg.className = "msg";
+  if (a.length < 6) { msg.className = "msg err"; msg.textContent = "Mínimo 6 caracteres."; return; }
+  if (a !== b) { msg.className = "msg err"; msg.textContent = "Las contraseñas no coinciden."; return; }
+  if (a === "123456") { msg.className = "msg err"; msg.textContent = "No puede ser 123456; elige otra."; return; }
+  $("cpBtn").disabled = true;
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) { $("cpBtn").disabled = false; msg.className = "msg err"; msg.textContent = error.message; return; }
+  await sb.from("rc_perfiles").update({ must_change_password: false }).eq("id", USER.id);
+  PERFIL.must_change_password = false;
+  await registrar("cambio_password", null, null, "Cambió su contraseña");
+  iniciarApp();
+};
+$("btnSalir").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("menuBtn").onclick = () => $("side").classList.toggle("open");
+
+/* ============ NAV ============ */
+const esAdmin = () => PERFIL && PERFIL.rol === "admin";
+function construirNav() {
+  const items = [
+    ["inicio", "🏠 Inicio", "General"],
+    ["nuevo", "➕ Nuevo trámite", "General"],
+    ["registros", "📋 Mis trámites", "General"],
+    ["legacy", "🗂️ Actas pre-cargadas", "General"],
+    ["actividad", "🕒 Actividad", "Control"],
+  ];
+  if (esAdmin()) items.push(["usuarios", "👥 Usuarios", "Control"]);
+  let html = "", grp = "";
+  items.forEach(([id, lbl, g]) => { if (g !== grp) { html += `<div class="grp">${g}</div>`; grp = g; } html += `<a data-v="${id}" href="#${id}">${lbl}</a>`; });
+  $("side").innerHTML = html;
+  $("side").querySelectorAll("a").forEach(a => a.onclick = () => { $("side").classList.remove("open"); });
+}
+function iniciarApp() {
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("uNom").textContent = PERFIL.nombre || PERFIL.usuario;
+  $("uRol").textContent = esAdmin() ? "Administrador" : "Funcionario";
+  construirNav();
+  window.addEventListener("hashchange", router);
+  router();
+}
+function setActive(v) { $("side").querySelectorAll("a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); }
+function router() {
+  const h = (location.hash || "#inicio").slice(1);
+  const [v, arg] = h.split("/");
+  setActive(v);
+  if (v === "inicio") vInicio();
+  else if (v === "nuevo") vNuevo();
+  else if (v === "registros") vRegistros();
+  else if (v === "legacy") vLegacy();
+  else if (v === "actividad") vActividad();
+  else if (v === "usuarios") esAdmin() ? vUsuarios() : vInicio();
+  else if (v === "form") vForm(arg);
+  else if (v === "ver") vVer(arg);
+  else vInicio();
+}
+const go = (h) => { location.hash = h; };
+
+/* ============ VISTAS ============ */
+async function vInicio() {
+  const view = $("view"); view.innerHTML = `<h1 class="t">Inicio</h1><div class="sub">Panel del Registro Civil · ${esc(PERFIL.nombre || PERFIL.usuario)}</div><div class="spin"></div>`;
+  const { data: tram } = await sb.from("rc_tramites").select("tipo,legacy").limit(5000);
+  const mios = (tram || []).filter(t => !t.legacy).length;
+  const leg = (tram || []).filter(t => t.legacy).length;
+  view.innerHTML = `<h1 class="t">Inicio</h1><div class="sub">${esAdmin() ? "Vista de administrador — ves todos los registros." : "Ves y editas solo lo que tú cargas."}</div>
+    <div class="card"><div class="stats">
+      <div class="stat"><b>${mios}</b><span>${esAdmin() ? "Trámites en el sistema" : "Mis trámites cargados"}</span></div>
+      <div class="stat"><b>${leg}</b><span>Actas pre-cargadas</span></div>
+      <div class="stat"><b>${Object.keys(TRAMITES).length}</b><span>Tipos de trámite</span></div>
+    </div></div>
+    <div class="card"><b style="font-size:15px">Iniciar un trámite</b><div class="grid-tram" style="margin-top:12px">${gridTramites()}</div></div>`;
+  view.querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
+}
+function gridTramites() {
+  const grupos = {};
+  for (const [k, v] of Object.entries(TRAMITES)) { (grupos[v.grupo] = grupos[v.grupo] || []).push([k, v]); }
+  return Object.entries(grupos).map(([g, arr]) => `<div style="grid-column:1/-1;font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-top:6px">${esc(g)}</div>` +
+    arr.map(([k, v]) => `<button class="tram-b" data-t="${k}"><span class="ic">${v.icon}</span><span><b>${esc(v.label)}</b></span></button>`).join("")).join("");
+}
+function vNuevo() {
+  $("view").innerHTML = `<h1 class="t">Nuevo trámite</h1><div class="sub">Elige el trámite a registrar.</div><div class="card"><div class="grid-tram">${gridTramites()}</div></div>`;
+  $("view").querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
+}
+
+/* ---- Formulario dinámico ---- */
+let EDIT_ID = null;
+async function vForm(tipo, registro) {
+  const cfg = TRAMITES[tipo]; if (!cfg) { go("nuevo"); return; }
+  const datos = (registro && registro.datos) || {};
+  EDIT_ID = registro ? registro.id : null;
+  let campos = "";
+  cfg.secciones.forEach(sec => {
+    campos += `<div class="sec-t">${esc(sec.t)}</div>`;
+    sec.campos.forEach(c => {
+      const val = datos[c.n] != null ? datos[c.n] : "";
+      let input;
+      if (c.t === "ta") input = `<textarea data-n="${c.n}">${esc(val)}</textarea>`;
+      else if (c.t === "sel") input = `<select data-n="${c.n}"><option value="">—</option>${c.o.map(o => `<option ${val === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+      else if (c.t === "date") input = `<input type="date" data-n="${c.n}" value="${esc(val)}">`;
+      else if (c.t === "num") input = `<input type="number" data-n="${c.n}" value="${esc(val)}">`;
+      else input = `<input type="text" data-n="${c.n}" value="${esc(val)}" ${c.t === "ced" ? 'placeholder="V-12345678"' : ""}>`;
+      campos += `<div class="fld w${c.w}"><label>${esc(c.l)}</label>${input}</div>`;
+    });
+  });
+  const hoy = new Date().toISOString().slice(0, 10);
+  const numHtml = cfg.num ? `<div class="fld w4"><label>N° de acta</label><input type="text" id="fNum" value="${esc(registro ? registro.numero_acta || "" : "")}"></div><div class="fld w4"><label>Año</label><input type="number" id="fAno" value="${registro ? registro.ano || new Date().getFullYear() : new Date().getFullYear()}"></div>` : "";
+  $("view").innerHTML = `<h1 class="t">${EDIT_ID ? "Editar" : "Nuevo"}: ${esc(cfg.label)}</h1><div class="sub">${esAdmin() ? "" : "Este registro quedará asociado a tu usuario."}</div>
+    <div class="card"><div class="form-grid">
+      ${cfg.num ? `<div class="sec-t">Numeración</div>${numHtml}<div class="fld w4"><label>Fecha</label><input type="date" id="fFecha" value="${esc(registro ? registro.fecha || hoy : hoy)}"></div>` : `<div class="fld w4" style="display:none"><input type="date" id="fFecha" value="${hoy}"></div>`}
+      ${campos}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+      <button class="btn g" id="fSave">${EDIT_ID ? "💾 Guardar cambios" : "💾 Registrar"}</button>
+      <button class="btn o" id="fCancel">Cancelar</button>
+    </div></div>`;
+  if (cfg.num && !EDIT_ID) sugerirNumero(tipo);
+  $("fCancel").onclick = () => go(EDIT_ID ? "ver/" + EDIT_ID : "registros");
+  $("fSave").onclick = () => guardar(tipo);
+}
+async function sugerirNumero(tipo) {
+  const ano = $("fAno") ? Number($("fAno").value) : new Date().getFullYear();
+  const { data } = await sb.from("rc_tramites").select("numero_acta").eq("tipo", tipo).eq("ano", ano);
+  let max = 0; (data || []).forEach(r => { const n = parseInt(r.numero_acta, 10); if (!isNaN(n) && n > max) max = n; });
+  if ($("fNum") && !$("fNum").value) $("fNum").value = max + 1;
+}
+async function guardar(tipo) {
+  const cfg = TRAMITES[tipo];
+  const datos = {};
+  $("view").querySelectorAll("[data-n]").forEach(el => { const v = (el.value || "").trim(); if (v) datos[el.dataset.n] = v; });
+  const titular = cfg.titular.map(k => datos[k]).filter(Boolean).join(" ").trim() || "(sin nombre)";
+  const cedula = datos[cfg.ced] || null;
+  const row = {
+    tipo, titular, cedula_titular: cedula,
+    numero_acta: $("fNum") ? ($("fNum").value || null) : null,
+    ano: $("fAno") ? Number($("fAno").value) || null : null,
+    fecha: $("fFecha") ? ($("fFecha").value || null) : null,
+    datos, owner: USER.id, owner_usuario: PERFIL.usuario,
+  };
+  $("fSave").disabled = true; $("fSave").textContent = "Guardando…";
+  let res, id;
+  if (EDIT_ID) { res = await sb.from("rc_tramites").update(row).eq("id", EDIT_ID); id = EDIT_ID; }
+  else { const r = await sb.from("rc_tramites").insert(row).select("id").single(); res = r; id = r.data && r.data.id; }
+  $("fSave").disabled = false;
+  if (res.error) { toast("Error: " + res.error.message); $("fSave").textContent = "💾 Registrar"; return; }
+  await registrar(EDIT_ID ? "editar" : "crear", tipo, id, `${EDIT_ID ? "Editó" : "Registró"} ${cfg.label}: ${titular}`, { numero_acta: row.numero_acta });
+  toast(EDIT_ID ? "Cambios guardados ✓" : "Trámite registrado ✓");
+  go("ver/" + id);
+}
+
+/* ---- Listado de registros ---- */
+async function vRegistros() {
+  const view = $("view");
+  view.innerHTML = `<h1 class="t">${esAdmin() ? "Todos los trámites" : "Mis trámites"}</h1><div class="sub">${esAdmin() ? "Como administrador ves los registros de todos los usuarios." : "Solo tus registros."}</div>
+    <div class="card"><div class="filtros">
+      <input id="rBuscar" placeholder="Buscar por nombre, cédula, N° acta…" style="min-width:240px">
+      <select id="rTipo"><option value="">Todos los trámites</option>${Object.entries(TRAMITES).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("")}</select>
+    </div><div id="rTabla"><div class="spin"></div></div></div>`;
+  const { data } = await sb.from("rc_tramites").select("*").neq("tipo", "acta_legacy").order("created_at", { ascending: false }).limit(3000);
+  const REG = data || [];
+  const pintar = () => {
+    const q = ($("rBuscar").value || "").toLowerCase(), ft = $("rTipo").value;
+    const lista = REG.filter(r => (!ft || r.tipo === ft) && (!q || (`${r.titular} ${r.cedula_titular || ""} ${r.numero_acta || ""} ${tipoLabel(r.tipo)}`.toLowerCase().includes(q))));
+    if (!lista.length) { $("rTabla").innerHTML = `<div class="empty">Sin trámites. Usa <b>Nuevo trámite</b> para empezar.</div>`; return; }
+    $("rTabla").innerHTML = `<div style="overflow:auto"><table><thead><tr><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N° / Año</th><th>Registrado por</th><th>Fecha</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
+      <td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td>
+      <td>${r.numero_acta ? esc(r.numero_acta) + (r.ano ? " / " + r.ano : "") : "—"}</td>
+      <td><span class="badge ${r.owner === USER.id ? "mine" : "a"}">${esc(r.owner_usuario || "—")}</span></td>
+      <td style="white-space:nowrap">${new Date(r.created_at).toLocaleDateString("es-VE")}</td>
+      <td><button class="btn o sm" data-ver="${r.id}">Ver</button></td></tr>`).join("")}</tbody></table></div>`;
+    $("rTabla").querySelectorAll("[data-ver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.ver));
+  };
+  $("rBuscar").oninput = pintar; $("rTipo").onchange = pintar; pintar();
+}
+
+/* ---- Ver / editar / eliminar ---- */
+async function vVer(id) {
+  $("view").innerHTML = `<div class="spin"></div>`;
+  const { data: r } = await sb.from("rc_tramites").select("*").eq("id", id).single();
+  if (!r) { $("view").innerHTML = `<div class="empty">Registro no encontrado o sin acceso.</div>`; return; }
+  const cfg = TRAMITES[r.tipo];
+  const puedeEditar = (r.owner === USER.id || esAdmin()) && r.tipo !== "acta_legacy";
+  let cuerpo = "";
+  if (cfg) { cfg.secciones.forEach(sec => { const filas = sec.campos.map(c => { const v = (r.datos || {})[c.n]; return v ? `<div class="fila"><span class="k">${esc(c.l)}</span><span>${esc(v)}</span></div>` : ""; }).join(""); if (filas) cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div>${filas}`; }); }
+  else { cuerpo = Object.entries(r.datos || {}).map(([k, v]) => `<div class="fila"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join(""); }
+  let pdfBtn = "";
+  if (r.pdf_path) pdfBtn = `<button class="btn o" id="verPdf">📄 Ver PDF</button>`;
+  $("view").innerHTML = `<h1 class="t">${esc(tipoLabel(r.tipo))} ${r.legacy ? '<span class="badge leg">Pre-cargada</span>' : ''}</h1>
+    <div class="sub">${esc(r.titular || "")}${r.numero_acta ? " · Acta N° " + esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : ""} · registrado por ${esc(r.owner_usuario || "sistema")}</div>
+    <div class="card">${cuerpo || '<div class="empty">Sin datos.</div>'}
+    <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+      ${cfg ? `<button class="btn" id="imprimir">🖨️ Imprimir constancia</button>` : ""}
+      ${pdfBtn}
+      ${puedeEditar ? `<button class="btn o" id="editar">✏️ Editar</button><button class="btn r" id="eliminar">🗑️ Eliminar</button>` : ""}
+      <button class="btn o" id="volver">← Volver</button>
+    </div></div>`;
+  $("volver").onclick = () => go("registros");
+  if ($("editar")) $("editar").onclick = () => vForm(r.tipo, r);
+  if ($("eliminar")) $("eliminar").onclick = () => eliminar(r);
+  if ($("imprimir")) $("imprimir").onclick = () => imprimir(r);
+  if ($("verPdf")) $("verPdf").onclick = async () => {
+    const { data, error } = await sb.storage.from("actas").createSignedUrl(r.pdf_path, 3600);
+    if (error) { toast("No se pudo abrir el PDF"); return; }
+    window.open(data.signedUrl, "_blank");
+  };
+}
+async function eliminar(r) {
+  if (!confirm(`¿Eliminar este trámite (${tipoLabel(r.tipo)} — ${r.titular})? No se puede deshacer.`)) return;
+  const { error } = await sb.from("rc_tramites").delete().eq("id", r.id);
+  if (error) { toast("Error: " + error.message); return; }
+  await registrar("eliminar", r.tipo, null, `Eliminó ${tipoLabel(r.tipo)}: ${r.titular}`);
+  toast("Trámite eliminado"); go("registros");
+}
+
+/* ---- Actas pre-cargadas ---- */
+async function vLegacy() {
+  $("view").innerHTML = `<h1 class="t">Actas pre-cargadas</h1><div class="sub">Documentos importados del sistema anterior. Visibles para todos los usuarios.</div>
+    <div class="card"><div class="filtros"><input id="lBuscar" placeholder="Buscar por número…" style="min-width:220px"></div><div id="lTabla"><div class="spin"></div></div></div>`;
+  const { data } = await sb.from("rc_tramites").select("*").eq("tipo", "acta_legacy").order("numero_acta").limit(3000);
+  const L = data || [];
+  const pintar = () => {
+    const q = ($("lBuscar").value || "").toLowerCase();
+    const lista = L.filter(r => !q || (`${r.numero_acta} ${r.titular}`.toLowerCase().includes(q)));
+    $("lTabla").innerHTML = `<div style="color:#64748b;font-size:12.5px;margin-bottom:8px">${lista.length} documento(s)</div><div style="overflow:auto"><table><thead><tr><th>Documento</th><th>N°</th><th></th></tr></thead><tbody>${lista.map(r => `<tr><td>${esc(r.titular)}</td><td>${esc(r.numero_acta || "—")}</td><td><button class="btn o sm" data-pdf="${esc(r.pdf_path)}">📄 Ver PDF</button></td></tr>`).join("")}</tbody></table></div>`;
+    $("lTabla").querySelectorAll("[data-pdf]").forEach(b => b.onclick = async () => {
+      const { data: d, error } = await sb.storage.from("actas").createSignedUrl(b.dataset.pdf, 3600);
+      if (error) { toast("No se pudo abrir"); return; } window.open(d.signedUrl, "_blank");
+    });
+  };
+  $("lBuscar").oninput = pintar; pintar();
+}
+
+/* ---- Actividad (bitácora) ---- */
+let canalBitacora = null;
+async function vActividad() {
+  $("view").innerHTML = `<h1 class="t">Actividad ${esAdmin() ? '<span class="badge a" style="vertical-align:middle">en vivo</span>' : ""}</h1>
+    <div class="sub">${esAdmin() ? "Registro en tiempo real de lo que hace cada usuario." : "Tu historial de acciones."}</div>
+    <div class="card"><div class="filtros">
+      <input id="aBuscar" placeholder="Buscar en la actividad…" style="min-width:220px">
+      ${esAdmin() ? `<select id="aUsuario"><option value="">Todos los usuarios</option></select>` : ""}
+      <select id="aAccion"><option value="">Todas las acciones</option><option value="crear">Crear</option><option value="editar">Editar</option><option value="eliminar">Eliminar</option><option value="login">Inicio de sesión</option><option value="crear_usuario">Crear usuario</option><option value="reset_password">Reset contraseña</option></select>
+    </div><div id="aTabla"><div class="spin"></div></div></div>`;
+  let ROWS = [];
+  const cargar = async () => {
+    const { data } = await sb.from("rc_bitacora").select("*").order("created_at", { ascending: false }).limit(1000);
+    ROWS = data || [];
+    if (esAdmin() && $("aUsuario")) {
+      const us = [...new Set(ROWS.map(r => r.actor_usuario).filter(Boolean))].sort();
+      const cur = $("aUsuario").value;
+      $("aUsuario").innerHTML = `<option value="">Todos los usuarios</option>` + us.map(u => `<option ${u === cur ? "selected" : ""}>${esc(u)}</option>`).join("");
+    }
+    pintar();
+  };
+  const accLbl = { crear: "Creó", editar: "Editó", eliminar: "Eliminó", login: "Ingresó", cambio_password: "Cambió clave", crear_usuario: "Creó usuario", reset_password: "Reseteó clave", eliminar_usuario: "Eliminó usuario", editar_usuario: "Editó usuario" };
+  const pintar = () => {
+    const q = ($("aBuscar").value || "").toLowerCase(), fu = $("aUsuario") ? $("aUsuario").value : "", fa = $("aAccion").value;
+    const lista = ROWS.filter(r => (!fu || r.actor_usuario === fu) && (!fa || r.accion === fa) && (!q || (`${r.actor_usuario} ${r.resumen} ${r.accion}`.toLowerCase().includes(q))));
+    if (!lista.length) { $("aTabla").innerHTML = `<div class="empty">Sin actividad con ese filtro.</div>`; return; }
+    $("aTabla").innerHTML = `<div style="overflow:auto"><table><thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>${lista.map(r => `<tr>
+      <td style="white-space:nowrap">${new Date(r.created_at).toLocaleString("es-VE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+      <td><span class="badge mine">${esc(r.actor_usuario || "—")}</span></td>
+      <td><b>${esc(accLbl[r.accion] || r.accion)}</b></td>
+      <td>${esc(r.resumen || "")}</td></tr>`).join("")}</tbody></table></div>`;
+  };
+  $("aBuscar").oninput = pintar; $("aAccion").onchange = pintar; if ($("aUsuario")) $("aUsuario").onchange = pintar;
+  await cargar();
+  if (canalBitacora) { sb.removeChannel(canalBitacora); canalBitacora = null; }
+  if (esAdmin()) {
+    canalBitacora = sb.channel("bitacora-live").on("postgres_changes", { event: "INSERT", schema: "public", table: "rc_bitacora" }, () => cargar()).subscribe();
+  }
+}
+
+/* ---- Administración de usuarios ---- */
+async function invocarAdmin(body) {
+  const { data, error } = await sb.functions.invoke("admin-usuarios", { body });
+  if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch (e) {} throw new Error(m); }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+async function vUsuarios() {
+  $("view").innerHTML = `<h1 class="t">Usuarios</h1><div class="sub">Crear, editar, resetear contraseña o eliminar usuarios del sistema.</div>
+    <div class="card" style="margin-top:14px"><button class="btn g" id="btnNuevoU">➕ Nuevo usuario</button></div>
+    <div class="card"><div id="uTabla"><div class="spin"></div></div></div>`;
+  $("btnNuevoU").onclick = () => modalUsuario();
+  try {
+    const { usuarios } = await invocarAdmin({ accion: "listar" });
+    $("uTabla").innerHTML = `<div style="overflow:auto"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${(usuarios || []).map(u => `<tr>
+      <td><b>${esc(u.usuario)}</b></td><td>${esc(u.nombre || "—")}</td>
+      <td><span class="badge ${u.rol === "admin" ? "leg" : "mine"}">${u.rol === "admin" ? "Administrador" : "Funcionario"}</span></td>
+      <td>${u.must_change_password ? '<span class="badge" style="background:#fef3c7;color:#92400e">debe cambiar clave</span>' : '<span class="badge a">activo</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn o sm" data-edit="${u.id}">Editar</button>
+        <button class="btn o sm" data-reset="${u.id}" data-u="${esc(u.usuario)}">Reset 123456</button>
+        ${u.id === USER.id ? "" : `<button class="btn r sm" data-del="${u.id}" data-u="${esc(u.usuario)}">Eliminar</button>`}
+      </td></tr>`).join("")}</tbody></table></div>`;
+    const map = {}; (usuarios || []).forEach(u => map[u.id] = u);
+    $("uTabla").querySelectorAll("[data-edit]").forEach(b => b.onclick = () => modalUsuario(map[b.dataset.edit]));
+    $("uTabla").querySelectorAll("[data-reset]").forEach(b => b.onclick = async () => {
+      if (!confirm(`¿Resetear la contraseña de ${b.dataset.u} a 123456? Se le pedirá cambiarla al entrar.`)) return;
+      try { await invocarAdmin({ accion: "reset", id: b.dataset.reset, usuario: b.dataset.u }); toast("Contraseña reseteada a 123456"); } catch (e) { toast("Error: " + e.message); }
+    });
+    $("uTabla").querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+      if (!confirm(`¿Eliminar al usuario ${b.dataset.u}? Esta acción no se puede deshacer.`)) return;
+      try { await invocarAdmin({ accion: "eliminar", id: b.dataset.del, usuario: b.dataset.u }); toast("Usuario eliminado"); vUsuarios(); } catch (e) { toast("Error: " + e.message); }
+    });
+  } catch (e) { $("uTabla").innerHTML = `<div class="empty">No se pudo cargar: ${esc(e.message)}</div>`; }
+}
+function modalUsuario(u) {
+  const ed = !!u;
+  $("modal").innerHTML = `<h3 style="font-size:18px;font-weight:850;margin-bottom:4px">${ed ? "Editar usuario" : "Nuevo usuario"}</h3>
+    <div class="form-grid" style="margin-top:10px">
+      <div class="fld w6"><label>Usuario</label><input id="muUser" value="${ed ? esc(u.usuario) : ""}" ${ed ? "disabled" : ""} placeholder="ej: maria.perez"></div>
+      <div class="fld w6"><label>Nombre completo</label><input id="muNom" value="${ed ? esc(u.nombre || "") : ""}"></div>
+      <div class="fld w6"><label>Cargo</label><input id="muCargo" value="${ed ? esc(u.cargo || "") : ""}"></div>
+      <div class="fld w3"><label>Cédula</label><input id="muCed" value="${ed ? esc(u.cedula || "") : ""}"></div>
+      <div class="fld w3"><label>Rol</label><select id="muRol"><option value="funcionario" ${ed && u.rol !== "admin" ? "selected" : ""}>Funcionario</option><option value="admin" ${ed && u.rol === "admin" ? "selected" : ""}>Administrador</option></select></div>
+      ${ed ? "" : `<div class="fld w6"><label>Contraseña inicial</label><input id="muPass" value="123456"><small style="color:#64748b;font-size:11px">Se le pedirá cambiarla al ingresar.</small></div>`}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn o" id="muCancel">Cancelar</button><button class="btn g" id="muSave">${ed ? "Guardar" : "Crear usuario"}</button>
+    </div>`;
+  $("modalBg").classList.add("show");
+  $("muCancel").onclick = () => $("modalBg").classList.remove("show");
+  $("muSave").onclick = async () => {
+    $("muSave").disabled = true;
+    try {
+      if (ed) await invocarAdmin({ accion: "actualizar", id: u.id, usuario: u.usuario, nombre: $("muNom").value, cargo: $("muCargo").value, cedula: $("muCed").value, rol: $("muRol").value });
+      else await invocarAdmin({ accion: "crear", usuario: $("muUser").value, nombre: $("muNom").value, cargo: $("muCargo").value, cedula: $("muCed").value, rol: $("muRol").value, password: $("muPass").value });
+      $("modalBg").classList.remove("show"); toast(ed ? "Usuario actualizado" : "Usuario creado"); vUsuarios();
+    } catch (e) { $("muSave").disabled = false; toast("Error: " + e.message); }
+  };
+}
+$("modalBg").addEventListener("click", e => { if (e.target === $("modalBg")) $("modalBg").classList.remove("show"); });
+
+/* ---- Impresión de constancia ---- */
+function imprimir(r) {
+  const cfg = TRAMITES[r.tipo]; if (!cfg) return;
+  const filas = [];
+  cfg.secciones.forEach(sec => { sec.campos.forEach(c => { const v = (r.datos || {})[c.n]; if (v) filas.push([c.l, v]); }); });
+  const cuerpo = filas.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
+  const hoy = new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" });
+  const esc2 = esc;
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc2(cfg.label)}</title><style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:"Times New Roman",Georgia,serif}
+    body{padding:40px 54px;color:#111;font-size:13px}
+    .hd{text-align:center;border-bottom:2px solid #0a2351;padding-bottom:10px;margin-bottom:6px}
+    .hd b{display:block;font-size:13px}.hd .s{font-size:11px;color:#333}
+    .tri{height:5px;display:flex;margin-bottom:10px}.tri i{flex:1}.tri i:nth-child(1){background:#f4c20d}.tri i:nth-child(2){background:#0a6cb0}.tri i:nth-child(3){background:#d21534}
+    h1{text-align:center;font-size:17px;margin:18px 0 4px;text-transform:uppercase;letter-spacing:.5px;color:#0a2351}
+    .meta{text-align:center;color:#555;font-size:11px;margin-bottom:14px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    td{padding:5px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+    td.k{font-weight:bold;width:38%;color:#0a2351}
+    .firma{margin-top:70px;text-align:center}.firma .l{border-top:1px solid #111;width:260px;margin:0 auto;padding-top:5px;font-size:12px}
+    .pie{margin-top:30px;font-size:10px;color:#666;text-align:center}
+  </style></head><body>
+    <div class="tri"><i></i><i></i><i></i></div>
+    <div class="hd"><b>REPÚBLICA BOLIVARIANA DE VENEZUELA</b><span class="s">Estado Bolivariano de Miranda · Municipio Cristóbal Rojas</span><span class="s">Alcaldía · Oficina de Registro Civil — Charallave</span></div>
+    <h1>${esc2(cfg.label)}</h1>
+    <div class="meta">${r.numero_acta ? "Acta N° " + esc2(r.numero_acta) + (r.ano ? " · Año " + r.ano : "") + " · " : ""}Emitido en Charallave, ${hoy}</div>
+    <table>${cuerpo}</table>
+    <div class="firma"><div class="l">Emperatriz García Ponte<br><span style="font-size:10px">Registradora Civil · C.I. V-6.216.949 · Res. HM-013-2019</span></div></div>
+    <div class="pie">Documento generado por el Sistema de Registro Civil de la Alcaldía del Municipio Cristóbal Rojas.</div>
+    <scr${""}ipt>window.onload=function(){setTimeout(function(){window.print()},250)}</scr${""}ipt>
+  </body></html>`;
+  const w = window.open("", "_blank"); if (!w) { toast("Permite ventanas emergentes para imprimir"); return; }
+  w.document.write(html); w.document.close();
+  registrar("imprimir", r.tipo, r.id, `Imprimió ${cfg.label}: ${r.titular}`);
+}
+
+/* ============ ARRANQUE ============ */
+(async () => {
+  const p = await cargarPerfil();
+  if (p) { if (p.must_change_password) { $("loginView").classList.add("hidden"); $("changeView").classList.remove("hidden"); } else iniciarApp(); }
+})();
+</script>
+</body>
+</html>
