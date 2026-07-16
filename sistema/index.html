@@ -213,6 +213,7 @@ function construirNav() {
     ["form/copia_acta", "🖨️ Entrega de Copias", "Registro"],
     ["form/permiso", "⚰️ Permisos", "Registro"],
     ["registros", "📋 Trámites y actas", "Consultas"],
+    ["reportes", "📊 Reportes", "Consultas"],
     ["actividad", "🕒 Actividad", "Control"],
   ];
   if (esAdmin()) items.push(["usuarios", "👥 Usuarios", "Control"]);
@@ -238,6 +239,7 @@ function router() {
   else if (v === "nuevo") vNuevo();
   else if (v === "documentos") vDocumentos();
   else if (v === "registros") vRegistros();
+  else if (v === "reportes") vReportes();
   else if (v === "legacy") vLegacy();
   else if (v === "actividad") vActividad();
   else if (v === "usuarios") esAdmin() ? vUsuarios() : vInicio();
@@ -271,6 +273,47 @@ function gridTramites() {
 function vNuevo() {
   $("view").innerHTML = `<h1 class="t">Nuevo trámite</h1><div class="sub">Elige el trámite a registrar.</div><div class="card"><div class="grid-tram">${gridTramites()}</div></div>`;
   $("view").querySelectorAll("[data-t]").forEach(b => b.onclick = () => go("form/" + b.dataset.t));
+}
+async function vReportes() {
+  $("view").innerHTML = `<h1 class="t">Reportes</h1><div class="sub">Estadísticas de los trámites y actas.</div><div class="card"><div class="spin"></div></div>`;
+  const { data } = await sb.from("rc_tramites").select("tipo,ano,legacy,created_at").limit(20000);
+  const REG = data || [];
+  const porTipo = {}; REG.forEach(r => porTipo[r.tipo] = (porTipo[r.tipo] || 0) + 1);
+  const porAno = {}; REG.forEach(r => { const a = r.ano || (r.created_at ? new Date(r.created_at).getFullYear() : "—"); porAno[a] = (porAno[a] || 0) + 1; });
+  const total = REG.length, archivo = REG.filter(r => r.legacy).length, nuevos = total - archivo;
+  const filasTipo = Object.entries(porTipo).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(tipoLabel(k))}</td><td style="text-align:right;font-weight:800">${v}</td></tr>`).join("");
+  const filasAno = Object.entries(porAno).sort((a, b) => String(b[0]).localeCompare(String(a[0]))).map(([k, v]) => `<tr><td>${esc(k)}</td><td style="text-align:right;font-weight:800">${v}</td></tr>`).join("");
+  $("view").innerHTML = `<h1 class="t">Reportes</h1><div class="sub">${esAdmin() ? "Estadísticas de todos los trámites y actas." : "Estadísticas de tus trámites y las actas del archivo."}</div>
+    <div class="card"><div class="stats">
+      <div class="stat"><b>${total}</b><span>Total de registros</span></div>
+      <div class="stat"><b>${nuevos}</b><span>Registrados en el sistema</span></div>
+      <div class="stat"><b>${archivo}</b><span>Actas del archivo</span></div>
+    </div></div>
+    <div class="card"><b style="font-size:15px">Por tipo de trámite</b><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Trámite</th><th style="text-align:right">Cantidad</th></tr></thead><tbody>${filasTipo}</tbody></table></div></div>
+    <div class="card"><b style="font-size:15px">Por año</b><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Año</th><th style="text-align:right">Cantidad</th></tr></thead><tbody>${filasAno}</tbody></table></div>
+    <div style="margin-top:16px"><button class="btn" id="repPdf">📄 Descargar reporte (PDF)</button></div></div>`;
+  $("repPdf").onclick = () => reportePDF(porTipo, porAno, { total, nuevos, archivo });
+}
+function reportePDF(porTipo, porAno, tot) {
+  const doc = new jsPDF({ unit: "mm", format: "letter", orientation: "portrait" });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  tricolor(doc);
+  doc.setFont("times", "bold"); doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+  ["REPÚBLICA BOLIVARIANA DE VENEZUELA", "Oficina de Registro Civil — Municipio Cristóbal Rojas · Charallave"].forEach((t, i) => doc.text(t, W / 2, 16 + i * 6, { align: "center" }));
+  doc.setFontSize(15); doc.setTextColor(10, 35, 81); doc.text("REPORTE ESTADÍSTICO", W / 2, 34, { align: "center" });
+  doc.setTextColor(0, 0, 0); doc.setFontSize(11);
+  let y = 46;
+  doc.text(`Total: ${tot.total}   ·   Registrados en el sistema: ${tot.nuevos}   ·   Actas del archivo: ${tot.archivo}`, 18, y); y += 11;
+  const bloque = (titulo, entradas) => {
+    if (y > H - 24) { doc.addPage(); y = 20; }
+    doc.setFont("times", "bold"); doc.setFontSize(12); doc.text(titulo, 18, y); y += 7; doc.setFont("times", "normal"); doc.setFontSize(11);
+    entradas.forEach(([k, v]) => { if (y > H - 16) { doc.addPage(); y = 20; } doc.text(String(k), 22, y); doc.text(String(v), W - 20, y, { align: "right" }); doc.setDrawColor(230); doc.line(18, y + 1.5, W - 18, y + 1.5); y += 6.5; }); y += 5;
+  };
+  bloque("Por tipo de trámite", Object.entries(porTipo).sort((a, b) => b[1] - a[1]).map(([k, v]) => [tipoLabel(k), v]));
+  bloque("Por año", Object.entries(porAno).sort((a, b) => String(b[0]).localeCompare(String(a[0]))));
+  doc.setFontSize(8); doc.setTextColor(120); doc.text("Generado por el Sistema de Registro Civil de la Alcaldía del Municipio Cristóbal Rojas.", W / 2, H - 12, { align: "center" });
+  doc.save("reporte_registro_civil.pdf");
+  registrar("reporte", null, null, "Generó un reporte estadístico");
 }
 function vDocumentos() {
   const docs = ["union_estable", "disolucion", "naturalizacion", "fe_vida", "residencia", "solteria", "buena_conducta", "perdida", "expensa", "manutencion", "viudez"];
@@ -474,14 +517,13 @@ async function vVer(id) {
     const filas = sec.campos.map(c => { const v = (r.datos || {})[c.n]; return v ? `<div class="fila"><span class="k">${esc(c.l)}</span><span>${esc(v)}</span></div>` : ""; }).join(""); if (filas) cuerpo += `<div class="sec-t" style="border:none;color:#0a2351">${esc(sec.t)}</div>${filas}`;
   }); }
   else { cuerpo = Object.entries(r.datos || {}).map(([k, v]) => `<div class="fila"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join(""); }
-  let pdfBtn = "";
-  if (r.pdf_path) pdfBtn = `<button class="btn o" id="verPdf">📄 Ver PDF</button>`;
-  $("view").innerHTML = `<h1 class="t">${esc(tipoLabel(r.tipo))} ${r.legacy ? '<span class="badge leg">Pre-cargada</span>' : ''}</h1>
+  $("view").innerHTML = `<h1 class="t">${esc(tipoLabel(r.tipo))} ${r.legacy ? '<span class="badge leg">Archivo</span>' : ''}</h1>
     <div class="sub">${esc(r.titular || "")}${r.numero_acta ? " · Acta N° " + esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : ""} · registrado por ${esc(r.owner_usuario || "sistema")}</div>
     <div class="card">${cuerpo || '<div class="empty">Sin datos.</div>'}
     <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
-      ${cfg ? `<button class="btn" id="imprimir">📄 Descargar acta (PDF)</button><button class="btn o" id="imprimirBtn">🖨️ Imprimir</button>` : ""}
-      ${pdfBtn}
+      ${r.pdf_path
+        ? `<button class="btn" id="descargarOrig">📄 Descargar PDF</button><button class="btn o" id="verPdf">👁️ Ver PDF</button>`
+        : (cfg ? `<button class="btn" id="imprimir">📄 Descargar acta (PDF)</button><button class="btn o" id="imprimirBtn">🖨️ Imprimir</button>` : "")}
       ${puedeEditar ? `<button class="btn o" id="editar">✏️ Editar</button><button class="btn r" id="eliminar">🗑️ Eliminar</button>` : ""}
       <button class="btn o" id="volver">← Volver</button>
     </div></div>`;
@@ -490,11 +532,16 @@ async function vVer(id) {
   if ($("eliminar")) $("eliminar").onclick = () => eliminar(r);
   if ($("imprimir")) $("imprimir").onclick = () => imprimir(r);
   if ($("imprimirBtn")) $("imprimirBtn").onclick = () => imprimirPDF(r);
-  if ($("verPdf")) $("verPdf").onclick = async () => {
-    const { data, error } = await sb.storage.from("actas").createSignedUrl(r.pdf_path, 3600);
-    if (error) { toast("No se pudo abrir el PDF"); return; }
-    window.open(data.signedUrl, "_blank");
-  };
+  if ($("verPdf")) $("verPdf").onclick = () => abrirPdfOriginal(r.pdf_path, false);
+  if ($("descargarOrig")) $("descargarOrig").onclick = () => abrirPdfOriginal(r.pdf_path, r.titular || "acta");
+}
+// Actas del archivo: entregar el PDF ORIGINAL tal cual (sin regenerar). descargarComo=false -> ver en el navegador.
+async function abrirPdfOriginal(pdfPath, descargarComo) {
+  const opts = descargarComo ? { download: (String(descargarComo).replace(/[^\w .-]/g, "_").slice(0, 60) || "acta") + ".pdf" } : {};
+  const { data, error } = await sb.storage.from("actas").createSignedUrl(pdfPath, 3600, opts);
+  if (error || !data) { toast("No se pudo abrir el PDF"); return; }
+  if (descargarComo) { const a = document.createElement("a"); a.href = data.signedUrl; a.download = ""; document.body.appendChild(a); a.click(); a.remove(); }
+  else window.open(data.signedUrl, "_blank");
 }
 async function eliminar(r) {
   if (!confirm(`¿Eliminar este trámite (${tipoLabel(r.tipo)} — ${r.titular})? No se puede deshacer.`)) return;
