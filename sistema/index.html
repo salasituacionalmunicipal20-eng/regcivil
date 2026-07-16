@@ -149,6 +149,21 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
+const RC_BUILD = "1784213754645";
+// Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
+async function chequearVersion() {
+  try {
+    const r = await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" });
+    const m = (await r.text()).match(/const RC_BUILD = "(\d+)"/);
+    if (m && RC_BUILD !== "DEV" && m[1] !== RC_BUILD && !$("rcUpd")) {
+      const b = document.createElement("div"); b.id = "rcUpd";
+      b.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#0a2351;color:#fff;padding:11px 14px;text-align:center;font-size:14px;box-shadow:0 -2px 12px rgba(0,0,0,.25)";
+      b.innerHTML = '🔄 Hay una versión nueva del sistema. <button id="rcUpdBtn" style="margin-left:10px;background:#f4c20d;color:#0a2351;border:none;border-radius:6px;padding:6px 16px;font-weight:800;cursor:pointer">Actualizar ahora</button>';
+      document.body.appendChild(b);
+      $("rcUpdBtn").onclick = () => location.reload();
+    }
+  } catch (e) {}
+}
 let PERFIL = null, USER = null;
 
 /* ============ CATÁLOGO DE TRÁMITES ============ */
@@ -250,6 +265,7 @@ function iniciarApp() {
   $("uRol").textContent = esAdmin() ? "Administrador" : "Funcionario";
   construirNav();
   cargarConfig();
+  chequearVersion(); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") chequearVersion(); }); if (!window._verInt) window._verInt = setInterval(chequearVersion, 300000);
   cargarBCV(); if (!window._bcvInt) window._bcvInt = setInterval(cargarBCV, 108e5);
   window.addEventListener("hashchange", router);
   router();
