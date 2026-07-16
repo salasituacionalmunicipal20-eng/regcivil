@@ -237,7 +237,7 @@ const TRAMITES = {
     S("Datos", [f("tipo_copia","Tipo de acta","sel",["Nacimiento","Matrimonio","Defunción"],4), f("n_acta","N° de acta",0,0,4), f("ano_acta","Año","num",0,4), f("copias","N° de copias","num",0,4), f("solicitante","Solicitante",0,0,4), f("cedula_solicitante","Cédula solicitante","ced",0,4)]),
   ]},
 };
-const tipoLabel = (t) => (TRAMITES[t] && TRAMITES[t].label) || (t === "acta_legacy" ? "Acta pre-cargada" : t);
+const tipoLabel = (t) => (TRAMITES[t] && TRAMITES[t].label) || (t === "acta_legacy" ? "Acta pre-cargada" : t === "reporte" ? "Reporte de oficina" : t);
 
 /* ============ AUTH ============ */
 async function cargarPerfil() {
@@ -287,8 +287,7 @@ function construirNav() {
   const items = [
     ["inicio", "🏠 Inicio", "General"],
     ["nuevo", "➕ Nuevo trámite", "General"],
-    ["registros", "📋 Mis trámites", "General"],
-    ["legacy", "🗂️ Actas pre-cargadas", "General"],
+    ["registros", "📋 Trámites y actas", "General"],
     ["actividad", "🕒 Actividad", "Control"],
   ];
   if (esAdmin()) items.push(["usuarios", "👥 Usuarios", "Control"]);
@@ -331,7 +330,7 @@ async function vInicio() {
   view.innerHTML = `<h1 class="t">Inicio</h1><div class="sub">${esAdmin() ? "Vista de administrador — ves todos los registros." : "Ves y editas solo lo que tú cargas."}</div>
     <div class="card"><div class="stats">
       <div class="stat"><b>${mios}</b><span>${esAdmin() ? "Trámites en el sistema" : "Mis trámites cargados"}</span></div>
-      <div class="stat"><b>${leg}</b><span>Actas pre-cargadas</span></div>
+      <div class="stat"><b>${leg}</b><span>Actas del archivo</span></div>
       <div class="stat"><b>${Object.keys(TRAMITES).length}</b><span>Tipos de trámite</span></div>
     </div></div>
     <div class="card"><b style="font-size:15px">Iniciar un trámite</b><div class="grid-tram" style="margin-top:12px">${gridTramites()}</div></div>`;
@@ -416,26 +415,26 @@ async function guardar(tipo) {
 /* ---- Listado de registros ---- */
 async function vRegistros() {
   const view = $("view");
-  view.innerHTML = `<h1 class="t">${esAdmin() ? "Todos los trámites" : "Mis trámites"}</h1><div class="sub">${esAdmin() ? "Como administrador ves los registros de todos los usuarios." : "Solo tus registros."}</div>
+  view.innerHTML = `<h1 class="t">Trámites y actas</h1><div class="sub">${esAdmin() ? "Ves todos los registros del sistema y las actas del archivo." : "Tus registros y las actas del archivo (visibles para todos)."}</div>
     <div class="card"><div class="filtros">
       <input id="rBuscar" placeholder="Buscar por nombre, cédula, N° acta…" style="min-width:240px">
-      <select id="rTipo"><option value="">Todos los trámites</option>${Object.entries(TRAMITES).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("")}</select>
+      <select id="rTipo"><option value="">Todos los tipos</option>${Object.entries(TRAMITES).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("")}<option value="reporte">Reportes de oficina</option></select>
+      <select id="rOrigen"><option value="">Todo el origen</option><option value="nuevo">Registrados en el sistema</option><option value="archivo">Actas del archivo (importadas)</option></select>
     </div><div id="rTabla"><div class="spin"></div></div></div>`;
-  const { data } = await sb.from("rc_tramites").select("*").neq("tipo", "acta_legacy").order("created_at", { ascending: false }).limit(3000);
+  const { data } = await sb.from("rc_tramites").select("*").order("created_at", { ascending: false }).limit(4000);
   const REG = data || [];
   const pintar = () => {
-    const q = ($("rBuscar").value || "").toLowerCase(), ft = $("rTipo").value;
-    const lista = REG.filter(r => (!ft || r.tipo === ft) && (!q || (`${r.titular} ${r.cedula_titular || ""} ${r.numero_acta || ""} ${tipoLabel(r.tipo)}`.toLowerCase().includes(q))));
-    if (!lista.length) { $("rTabla").innerHTML = `<div class="empty">Sin trámites. Usa <b>Nuevo trámite</b> para empezar.</div>`; return; }
-    $("rTabla").innerHTML = `<div style="overflow:auto"><table><thead><tr><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N° / Año</th><th>Registrado por</th><th>Fecha</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
+    const q = ($("rBuscar").value || "").toLowerCase(), ft = $("rTipo").value, fo = $("rOrigen").value;
+    const lista = REG.filter(r => (!ft || r.tipo === ft) && (!fo || (fo === "archivo" ? r.legacy : !r.legacy)) && (!q || (`${r.titular} ${r.cedula_titular || ""} ${r.numero_acta || ""} ${tipoLabel(r.tipo)}`.toLowerCase().includes(q))));
+    if (!lista.length) { $("rTabla").innerHTML = `<div class="empty">Sin resultados. Usa <b>Nuevo trámite</b> para registrar uno.</div>`; return; }
+    $("rTabla").innerHTML = `<div style="color:#64748b;font-size:12.5px;margin-bottom:8px">${lista.length} registro(s)</div><div style="overflow:auto"><table><thead><tr><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N° / Año</th><th>Origen</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
       <td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td>
       <td>${r.numero_acta ? esc(r.numero_acta) + (r.ano ? " / " + r.ano : "") : "—"}</td>
-      <td><span class="badge ${r.owner === USER.id ? "mine" : "a"}">${esc(r.owner_usuario || "—")}</span></td>
-      <td style="white-space:nowrap">${new Date(r.created_at).toLocaleDateString("es-VE")}</td>
+      <td>${r.legacy ? '<span class="badge leg">Archivo</span>' : `<span class="badge ${r.owner === USER.id ? "mine" : "a"}">${esc(r.owner_usuario || "—")}</span>`}</td>
       <td><button class="btn o sm" data-ver="${r.id}">Ver</button></td></tr>`).join("")}</tbody></table></div>`;
     $("rTabla").querySelectorAll("[data-ver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.ver));
   };
-  $("rBuscar").oninput = pintar; $("rTipo").onchange = pintar; pintar();
+  $("rBuscar").oninput = pintar; $("rTipo").onchange = pintar; $("rOrigen").onchange = pintar; pintar();
 }
 
 /* ---- Ver / editar / eliminar ---- */
@@ -479,20 +478,28 @@ async function eliminar(r) {
 
 /* ---- Actas pre-cargadas ---- */
 async function vLegacy() {
-  $("view").innerHTML = `<h1 class="t">Actas pre-cargadas</h1><div class="sub">Documentos importados del sistema anterior. Visibles para todos los usuarios.</div>
-    <div class="card"><div class="filtros"><input id="lBuscar" placeholder="Buscar por número…" style="min-width:220px"></div><div id="lTabla"><div class="spin"></div></div></div>`;
-  const { data } = await sb.from("rc_tramites").select("*").eq("tipo", "acta_legacy").order("numero_acta").limit(3000);
+  $("view").innerHTML = `<h1 class="t">Actas pre-cargadas</h1><div class="sub">Actas y documentos importados del sistema anterior, ya clasificados por tipo. Visibles para todos; el administrador puede editarlos y descargar el PDF original.</div>
+    <div class="card"><div class="filtros">
+      <input id="lBuscar" placeholder="Buscar por nombre, cédula, N°…" style="min-width:240px">
+      <select id="lTipo"><option value="">Todos los tipos</option>${Object.entries(TRAMITES).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("")}<option value="reporte">Reportes de oficina</option></select>
+    </div><div id="lTabla"><div class="spin"></div></div></div>`;
+  const { data } = await sb.from("rc_tramites").select("*").eq("legacy", true).order("tipo").order("numero_acta").limit(4000);
   const L = data || [];
   const pintar = () => {
-    const q = ($("lBuscar").value || "").toLowerCase();
-    const lista = L.filter(r => !q || (`${r.numero_acta} ${r.titular}`.toLowerCase().includes(q)));
-    $("lTabla").innerHTML = `<div style="color:#64748b;font-size:12.5px;margin-bottom:8px">${lista.length} documento(s)</div><div style="overflow:auto"><table><thead><tr><th>Documento</th><th>N°</th><th></th></tr></thead><tbody>${lista.map(r => `<tr><td>${esc(r.titular)}</td><td>${esc(r.numero_acta || "—")}</td><td><button class="btn o sm" data-pdf="${esc(r.pdf_path)}">📄 Ver PDF</button></td></tr>`).join("")}</tbody></table></div>`;
+    const q = ($("lBuscar").value || "").toLowerCase(), ft = $("lTipo").value;
+    const lista = L.filter(r => (!ft || r.tipo === ft) && (!q || (`${r.numero_acta || ""} ${r.titular || ""} ${r.cedula_titular || ""} ${tipoLabel(r.tipo)}`.toLowerCase().includes(q))));
+    if (!lista.length) { $("lTabla").innerHTML = `<div class="empty">Sin documentos con ese filtro.</div>`; return; }
+    $("lTabla").innerHTML = `<div style="color:#64748b;font-size:12.5px;margin-bottom:8px">${lista.length} documento(s)</div><div style="overflow:auto"><table><thead><tr><th>Tipo</th><th>Titular</th><th>Cédula</th><th>N°/Año</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
+      <td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td>
+      <td>${r.numero_acta ? esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : "—"}</td>
+      <td style="white-space:nowrap"><button class="btn o sm" data-ver="${r.id}">Ver</button>${r.pdf_path ? ` <button class="btn o sm" data-pdf="${esc(r.pdf_path)}">📄 PDF</button>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
+    $("lTabla").querySelectorAll("[data-ver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.ver));
     $("lTabla").querySelectorAll("[data-pdf]").forEach(b => b.onclick = async () => {
       const { data: d, error } = await sb.storage.from("actas").createSignedUrl(b.dataset.pdf, 3600);
-      if (error) { toast("No se pudo abrir"); return; } window.open(d.signedUrl, "_blank");
+      if (error) { toast("No se pudo abrir el PDF"); return; } window.open(d.signedUrl, "_blank");
     });
   };
-  $("lBuscar").oninput = pintar; pintar();
+  $("lBuscar").oninput = pintar; $("lTipo").onchange = pintar; pintar();
 }
 
 /* ---- Actividad (bitácora) ---- */
