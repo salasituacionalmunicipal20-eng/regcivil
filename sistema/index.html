@@ -468,7 +468,7 @@ async function vVer(id) {
     <div class="sub">${esc(r.titular || "")}${r.numero_acta ? " · Acta N° " + esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : ""} · registrado por ${esc(r.owner_usuario || "sistema")}</div>
     <div class="card">${cuerpo || '<div class="empty">Sin datos.</div>'}
     <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
-      ${cfg ? `<button class="btn" id="imprimir">📄 Descargar acta (PDF)</button>` : ""}
+      ${cfg ? `<button class="btn" id="imprimir">📄 Descargar acta (PDF)</button><button class="btn o" id="imprimirBtn">🖨️ Imprimir</button>` : ""}
       ${pdfBtn}
       ${puedeEditar ? `<button class="btn o" id="editar">✏️ Editar</button><button class="btn r" id="eliminar">🗑️ Eliminar</button>` : ""}
       <button class="btn o" id="volver">← Volver</button>
@@ -477,6 +477,7 @@ async function vVer(id) {
   if ($("editar")) $("editar").onclick = () => vForm(r.tipo, r);
   if ($("eliminar")) $("eliminar").onclick = () => eliminar(r);
   if ($("imprimir")) $("imprimir").onclick = () => imprimir(r);
+  if ($("imprimirBtn")) $("imprimirBtn").onclick = () => imprimirPDF(r);
   if ($("verPdf")) $("verPdf").onclick = async () => {
     const { data, error } = await sb.storage.from("actas").createSignedUrl(r.pdf_path, 3600);
     if (error) { toast("No se pudo abrir el PDF"); return; }
@@ -732,6 +733,15 @@ function imprimir(r) {
   const base = (cfg.label + " " + (r.numero_acta ? "N " + r.numero_acta : (r.titular || ""))).normalize("NFD").replace(/[^\w\- ]/g, "").trim().replace(/\s+/g, "_");
   doc.save((base || "acta") + ".pdf");
   registrar("imprimir", r.tipo, r.id, `Generó el PDF de ${cfg.label}: ${r.titular}`);
+}
+function imprimirPDF(r) {
+  const cfg = TRAMITES[r.tipo]; if (!cfg) { toast("Este documento no tiene formato de acta."); return; }
+  let doc;
+  try { doc = cfg.num ? generarActaPDF(r) : generarConstanciaPDF(r); }
+  catch (e) { toast("No se pudo generar el PDF: " + (e.message || e)); return; }
+  try { if (doc.autoPrint) doc.autoPrint(); const w = window.open(doc.output("bloburl"), "_blank"); if (!w) { toast("Permite ventanas emergentes para imprimir"); return; } }
+  catch (e) { toast("No se pudo abrir para imprimir"); return; }
+  registrar("imprimir", r.tipo, r.id, `Imprimió ${cfg.label}: ${r.titular}`);
 }
 
 /* ============ ARRANQUE ============ */
