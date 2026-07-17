@@ -1,0 +1,4 @@
+project_id = "hcokzgmvoatmnmiefffv"
+
+[functions.registro-ai]
+verify_jwt = true
