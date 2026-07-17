@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784304153016";
+const RC_BUILD = "1784320713875";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -1593,7 +1593,12 @@ function generarActaPDF(r) {
     doc.setFont("times", "bold"); doc.setFontSize(8.6); doc.setTextColor(0); doc.text(L + "- " + sec.t, MX + 2, y + 3.8);
     y += 5.5;
     if (sec.aceptacion) {
-      y = drawGrid(doc, sec.campos.map(c => ({ l: c.l, v: d[c.n], w: c.w })), MX, y, CW);
+      doc.setFont("times", "normal"); doc.setFontSize(9.5); doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.25);
+      if (y + 26 > H - 40) { doc.addPage(); y = 18; }
+      doc.text("El", MX + 3, y + 8); doc.line(MX + 3 + doc.getTextWidth("El "), y + 8.5, RX - 3, y + 8.5);
+      y += 14;
+      doc.text("Y ella", MX + 3, y + 8); doc.line(MX + 3 + doc.getTextWidth("Y ella "), y + 8.5, RX - 3, y + 8.5);
+      y += 13;
     } else if (sec.texto) {
       doc.setFont("times", "normal"); doc.setFontSize(7.2); doc.setTextColor(0);
       doc.splitTextToSize(sec.texto, CW - 5).forEach(ln => { if (y + 4 > H - 40) { doc.addPage(); y = 18; } doc.text(ln, MX + 2, y + 3); y += 3.1; });
