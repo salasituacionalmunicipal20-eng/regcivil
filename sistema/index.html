@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784348560052";
+const RC_BUILD = "1784351680010";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -1147,6 +1147,26 @@ function esTitularHistoricoGenerico(valor) {
   const texto = String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
   return !texto || texto === "registro historico" || texto === "sin titular" || texto === "(sin nombre)";
 }
+function titularHistoricoSinNombre(r, datos) {
+  const tipo = (r && r.tipo) || "";
+  if (tipo === "defuncion") {
+    const genero = String(datos.genero || datos.sexo_dif || "").trim();
+    const edadBase = String(datos.edad_f || datos.edad_dif || "").trim();
+    const sujeto = /femen/i.test(genero) ? "Fallecida" : /mascul/i.test(genero) ? "Fallecido" : "Persona fallecida";
+    const edad = edadBase ? (/a(?:ñ|n)os?|mes(?:es)?|d[ií]as?/i.test(edadBase) ? edadBase : `${edadBase} años`) : "";
+    return `${sujeto} sin nombre conservado${edad ? " · " + edad : ""}`;
+  }
+  if (tipo === "nacimiento") {
+    const genero = String(datos.genero || datos.sexo_pre || "").trim();
+    const sujeto = /femen/i.test(genero) ? "Niña" : /mascul/i.test(genero) ? "Niño" : "Persona nacida";
+    return `${sujeto} sin nombre conservado`;
+  }
+  if (tipo === "matrimonio") return "Contrayentes sin nombres conservados";
+  if (tipo === "union_estable") return "Pareja sin nombres conservados";
+  if (tipo === "disolucion") return "Comparecientes sin nombres conservados";
+  if (tipo === "naturalizacion") return "Solicitante sin nombre conservado";
+  return "Titular no conservado en la fuente";
+}
 function aplicarDetalleHistorico(r, enlace, detalle) {
   if (!r || !detalle) return r;
   const datos = { ...(r.datos || {}) }, legacy = { ...(datos._legacy || {}) };
@@ -1165,7 +1185,7 @@ function completarTitularHistorico(r) {
   const datos = datosCompletosRegistro(r);
   const titular = (cfg.titular || []).map(k => datos[k]).filter(v => v != null && String(v).trim()).join(" ").replace(/\s+/g, " ").trim();
   const cedula = datos[cfg.ced];
-  if (titular && esTitularHistoricoGenerico(r.titular)) r.titular = titular;
+  if (esTitularHistoricoGenerico(r.titular)) r.titular = titular || titularHistoricoSinNombre(r, datos);
   if (cedula && !String(r.cedula_titular || "").trim()) r.cedula_titular = cedula;
   return r;
 }
