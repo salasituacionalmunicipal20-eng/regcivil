@@ -100,7 +100,7 @@ function normalizePlan(raw: Record<string, unknown>): Plan {
 async function cloudflareAI(messages: Array<{ role: string; content: string }>, maxTokens: number) {
   const token = Deno.env.get("CLOUDFLARE_API_TOKEN");
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const model = Deno.env.get("CLOUDFLARE_AI_MODEL") || "@cf/meta/llama-3.1-8b-instruct";
+  const model = Deno.env.get("CLOUDFLARE_AI_MODEL") || "@cf/meta/llama-3.2-3b-instruct";
   if (!token || !accountId) throw new Error("La conexión con Cloudflare AI no está configurada.");
 
   const res = await fetch(
@@ -202,7 +202,11 @@ Fechas en YYYY-MM-DD. origen solo archivo o sistema. Usa texto únicamente para 
     const result = data || { total: 0, resultados: [] };
     const safeRows = (Array.isArray(result.resultados) ? result.resultados : [])
       .slice(0, plan.limite)
-      .map((row: Record<string, unknown>) => ({ ...row, datos: compactData(row.datos) }));
+      .map((row: Record<string, unknown>) => ({
+        ...row,
+        datos: compactData(row.datos),
+        detalle_historico: compactData(row.detalle_historico),
+      }));
     const context = {
       total: Number(result.total || 0),
       fecha_min: result.fecha_min || null,
