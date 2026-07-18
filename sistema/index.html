@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784336033344";
+const RC_BUILD = "1784348560052";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -677,8 +677,9 @@ function pintarCentroReportes(f, data) {
   if ($("crCsv")) $("crCsv").onclick = () => descargarCentroCSV();
 }
 
-function pintarPaginaCentro(filas, pagina) {
+async function pintarPaginaCentro(filas, pagina) {
   const cont = $("crVista"); if (!cont || !CENTRO_ESTADO) return;
+  await enriquecerTitularesHistoricos(filas);
   const total = Number(CENTRO_ESTADO.data.total || 0);
   const paginas = Math.max(1, Math.ceil(total / CENTRO_POR_PAGINA));
   const inicio = total ? (pagina - 1) * CENTRO_POR_PAGINA + 1 : 0;
@@ -698,7 +699,7 @@ async function cargarPaginaCentro(pagina) {
   const paginas = Math.max(1, Math.ceil(total / CENTRO_POR_PAGINA));
   pagina = Math.max(1, Math.min(pagina, paginas));
   const cont = $("crVista"); if (cont) cont.style.opacity = ".55";
-  let q = sb.from("rc_tramites").select("id,fecha,tipo,titular,cedula_titular,numero_acta,ano,owner_usuario,created_at")
+  let q = sb.from("rc_tramites").select("id,fecha,tipo,titular,cedula_titular,numero_acta,ano,owner_usuario,created_at,legacy_source_id,datos")
     .order("fecha", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
   const f = CENTRO_ESTADO.filtros;
   if (f.desde) q = q.gte("fecha", f.desde); if (f.hasta) q = q.lte("fecha", f.hasta);
@@ -709,7 +710,7 @@ async function cargarPaginaCentro(pagina) {
   if (cont) cont.style.opacity = "1";
   if (error) { toast("No se pudo cargar la página: " + error.message); return; }
   CENTRO_ESTADO.pagina = pagina;
-  pintarPaginaCentro(data || [], pagina);
+  await pintarPaginaCentro(data || [], pagina);
   $("crVista")?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
@@ -1010,7 +1011,7 @@ async function vRegistros() {
     const funcionario = limpiarBusqueda($("rFuncionario").value), numeracion = $("rNumeracion").value;
     const orden = $("rOrden").value, tamanoPagina = Number($("rTamano").value) || 100;
     let consulta = sb.from("rc_tramites")
-      .select("id,tipo,titular,cedula_titular,numero_acta,ano,fecha,legacy,owner,owner_usuario,pdf_path,created_at", { count: "exact" });
+      .select("id,tipo,titular,cedula_titular,numero_acta,ano,fecha,legacy,owner,owner_usuario,pdf_path,created_at,legacy_source_id,datos", { count: "exact" });
     if (ft) consulta = consulta.eq("tipo", ft);
     if (fo) consulta = consulta.eq("legacy", fo === "archivo");
     if (acta) consulta = consulta.eq("numero_acta", acta);
@@ -1036,6 +1037,8 @@ async function vRegistros() {
     if (actual !== solicitud) return;
     if (error) { $("rTabla").innerHTML = `<div class="empty">No se pudieron cargar los registros. ${esc(error.message)}</div>`; return; }
     const lista = data || [], total = count || 0, paginas = Math.max(1, Math.ceil(total / tamanoPagina));
+    await enriquecerTitularesHistoricos(lista);
+    if (actual !== solicitud) return;
     if (pagina > paginas) { pagina = paginas; cargar(); return; }
     if (!lista.length) { $("rTabla").innerHTML = `<div class="empty">Sin resultados. Usa <b>Nuevo trámite</b> para registrar uno.</div>`; return; }
     $("rTabla").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;color:#64748b;font-size:12.5px;margin-bottom:8px"><span>${total.toLocaleString("es-VE")} registro(s)</span><span>Página ${pagina.toLocaleString("es-VE")} de ${paginas.toLocaleString("es-VE")}</span></div><div style="overflow:auto"><table><thead><tr><th>Fecha</th><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N° / Año</th><th>Funcionario</th><th>Origen</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
@@ -1140,22 +1143,72 @@ function bloqueDatosOriginales(r) {
 }
 
 /* ---- Ver / editar / eliminar ---- */
-async function cargarDetalleHistorico(r) {
-  if (!r || !r.legacy_source_id) return r;
-  const { data: enlace } = await sb.from("rc_tramites_detalle_links")
-    .select("act_key,confianza").eq("legacy_source_id", r.legacy_source_id).maybeSingle();
-  if (!enlace) return r;
-  const { data: detalle } = await sb.from("rc_detalles_historicos")
-    .select("act_key,fuente,datos").eq("act_key", enlace.act_key).maybeSingle();
-  if (!detalle) return r;
+function esTitularHistoricoGenerico(valor) {
+  const texto = String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return !texto || texto === "registro historico" || texto === "sin titular" || texto === "(sin nombre)";
+}
+function aplicarDetalleHistorico(r, enlace, detalle) {
+  if (!r || !detalle) return r;
   const datos = { ...(r.datos || {}) }, legacy = { ...(datos._legacy || {}) };
   legacy.respaldo_2026_02_08 = detalle.datos;
   legacy.respaldo_fuente = detalle.fuente;
   legacy.respaldo_clave_acta = detalle.act_key;
-  legacy.respaldo_confianza = enlace.confianza;
+  legacy.respaldo_confianza = enlace && enlace.confianza;
   datos._legacy = legacy;
   r.datos = datos;
   return r;
+}
+function completarTitularHistorico(r) {
+  if (!r) return r;
+  const cfg = TRAMITES[r.tipo];
+  if (!cfg) return r;
+  const datos = datosCompletosRegistro(r);
+  const titular = (cfg.titular || []).map(k => datos[k]).filter(v => v != null && String(v).trim()).join(" ").replace(/\s+/g, " ").trim();
+  const cedula = datos[cfg.ced];
+  if (titular && esTitularHistoricoGenerico(r.titular)) r.titular = titular;
+  if (cedula && !String(r.cedula_titular || "").trim()) r.cedula_titular = cedula;
+  return r;
+}
+async function enriquecerTitularesHistoricos(filas) {
+  const pendientes = (filas || []).filter(r => r && esTitularHistoricoGenerico(r.titular));
+  if (!pendientes.length) return filas;
+  const porId = new Map(pendientes.map(r => [r.id, r]));
+  const sinOrigen = pendientes.filter(r => !r.legacy_source_id).map(r => r.id).filter(Boolean);
+  for (let i = 0; i < sinOrigen.length; i += 100) {
+    const { data } = await sb.from("rc_tramites").select("id,legacy_source_id,datos").in("id", sinOrigen.slice(i, i + 100));
+    (data || []).forEach(origen => Object.assign(porId.get(origen.id) || {}, origen));
+  }
+  const sourceIds = [...new Set(pendientes.map(r => r.legacy_source_id).filter(Boolean))];
+  const enlaces = [];
+  for (let i = 0; i < sourceIds.length; i += 100) {
+    const { data } = await sb.from("rc_tramites_detalle_links").select("legacy_source_id,act_key,confianza").in("legacy_source_id", sourceIds.slice(i, i + 100));
+    enlaces.push(...(data || []));
+  }
+  const enlacePorOrigen = new Map(enlaces.map(e => [e.legacy_source_id, e]));
+  const actKeys = [...new Set(enlaces.map(e => e.act_key).filter(Boolean))];
+  const detalles = [];
+  for (let i = 0; i < actKeys.length; i += 100) {
+    const { data } = await sb.from("rc_detalles_historicos").select("act_key,fuente,datos").in("act_key", actKeys.slice(i, i + 100));
+    detalles.push(...(data || []));
+  }
+  const detallePorClave = new Map(detalles.map(d => [d.act_key, d]));
+  pendientes.forEach(r => {
+    const enlace = enlacePorOrigen.get(r.legacy_source_id);
+    if (enlace) aplicarDetalleHistorico(r, enlace, detallePorClave.get(enlace.act_key));
+    completarTitularHistorico(r);
+  });
+  return filas;
+}
+async function cargarDetalleHistorico(r) {
+  if (!r || !r.legacy_source_id) return completarTitularHistorico(r);
+  const { data: enlace } = await sb.from("rc_tramites_detalle_links")
+    .select("act_key,confianza").eq("legacy_source_id", r.legacy_source_id).maybeSingle();
+  if (!enlace) return completarTitularHistorico(r);
+  const { data: detalle } = await sb.from("rc_detalles_historicos")
+    .select("act_key,fuente,datos").eq("act_key", enlace.act_key).maybeSingle();
+  if (!detalle) return completarTitularHistorico(r);
+  aplicarDetalleHistorico(r, enlace, detalle);
+  return completarTitularHistorico(r);
 }
 async function vVer(id) {
   $("view").innerHTML = `<div class="spin"></div>`;
@@ -1181,9 +1234,8 @@ async function vVer(id) {
     <div class="sub">${esc(r.titular || "")}${r.numero_acta ? " · Acta N° " + esc(r.numero_acta) + (r.ano ? "/" + r.ano : "") : ""} · registrado por ${esc(r.owner_usuario || "sistema")}</div>
     <div class="card">${cuerpo || '<div class="empty">Sin datos.</div>'}
     <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
-      ${r.pdf_path
-        ? `<button class="btn" id="descargarOrig">📄 Descargar PDF</button><button class="btn o" id="verPdf">👁️ Ver PDF</button>`
-        : (cfg ? `<button class="btn" id="imprimir">📄 Descargar acta (PDF)</button><button class="btn o" id="imprimirBtn">🖨️ Imprimir</button>` : "")}
+      ${cfg ? `<button class="btn" id="imprimir">📄 Descargar acta completa (PDF)</button><button class="btn o" id="imprimirBtn">🖨️ Imprimir acta completa</button>` : ""}
+      ${r.pdf_path ? `<button class="btn o" id="descargarOrig">📥 Descargar archivo original</button><button class="btn o" id="verPdf">👁️ Ver archivo original</button>` : ""}
       ${puedeEditar ? `<button class="btn o" id="editar">✏️ Editar</button><button class="btn r" id="eliminar">🗑️ Eliminar</button>` : ""}
       <button class="btn o" id="volver">← Volver</button>
     </div></div>`;
@@ -1224,7 +1276,7 @@ async function vLegacy() {
     $("lTabla").innerHTML = `<div class="spin"></div>`;
     const q = limpiarBusqueda($("lBuscar").value), ft = $("lTipo").value;
     let consulta = sb.from("rc_tramites")
-      .select("id,tipo,titular,cedula_titular,numero_acta,ano,pdf_path", { count: "exact" })
+      .select("id,tipo,titular,cedula_titular,numero_acta,ano,pdf_path,legacy_source_id,datos", { count: "exact" })
       .eq("legacy", true)
       .order("created_at", { ascending: false });
     if (ft) consulta = consulta.eq("tipo", ft);
@@ -1238,6 +1290,8 @@ async function vLegacy() {
     if (actual !== solicitud) return;
     if (error) { $("lTabla").innerHTML = `<div class="empty">No se pudieron cargar las actas. ${esc(error.message)}</div>`; return; }
     const lista = data || [], total = count || 0, paginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA));
+    await enriquecerTitularesHistoricos(lista);
+    if (actual !== solicitud) return;
     if (!lista.length) { $("lTabla").innerHTML = `<div class="empty">Sin documentos con ese filtro.</div>`; return; }
     $("lTabla").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;color:#64748b;font-size:12.5px;margin-bottom:8px"><span>${total.toLocaleString("es-VE")} documento(s)</span><span>Página ${pagina.toLocaleString("es-VE")} de ${paginas.toLocaleString("es-VE")}</span></div><div style="overflow:auto"><table><thead><tr><th>Tipo</th><th>Titular</th><th>Cédula</th><th>N°/Año</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
       <td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td>
@@ -1418,6 +1472,18 @@ function completarDesdeRespaldo(r, base) {
     poner(prefijo + "_nombre", p && p.nombres); poner(prefijo + "_profesion", p && p.profesion);
     poner(prefijo + "_nacionalidad", p && p.nacionalidad); poner(prefijo + "_direccion", p && p.direccion);
   };
+
+  /* La tabla inserciones contiene el texto íntegro recibido de consulados,
+     tribunales u otras autoridades. Se conserva también en el bloque de datos
+     originales y se proyecta al formulario moderno para que llegue al PDF. */
+  const insercion = primera("inserciones") || {};
+  if (Object.keys(insercion).length) {
+    poner("tipo_acta", insercion.tipo || "Inserción");
+    poner("acta_insercion", insercion.acta_prove);
+    poner("fecha_insercion", insercion.fecha);
+    poner("datos_autoridad", insercion.autoridad);
+    poner("observaciones", insercion.texto);
+  }
 
   if (r.tipo === "matrimonio") {
     const matrimonios = Array.isArray(tablas.matrimonios) ? tablas.matrimonios : [];
