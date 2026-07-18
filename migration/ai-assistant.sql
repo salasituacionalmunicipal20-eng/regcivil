@@ -76,8 +76,11 @@ as $$
   ),
   filtrados as materialized (
     select t.id, t.tipo, t.titular, t.cedula_titular, t.numero_acta, t.ano,
-           t.fecha, t.legacy, t.owner_usuario, t.estado, t.created_at, t.datos
+           t.fecha, t.legacy, t.owner_usuario, t.estado, t.created_at, t.datos,
+           d.datos as detalle_historico
     from public.rc_tramites t
+    left join public.rc_tramites_detalle_links l on l.legacy_source_id = t.legacy_source_id
+    left join public.rc_detalles_historicos d on d.act_key = l.act_key
     cross join parametros p
     where (p.tipo is null or t.tipo = p.tipo)
       and (p.desde is null or t.fecha >= p.desde)
@@ -85,13 +88,14 @@ as $$
       and (p.ano is null or t.ano = p.ano)
       and (p.titular is null or t.titular ilike '%' || p.titular || '%')
       and (p.cedula is null or regexp_replace(coalesce(t.cedula_titular, ''), '[^0-9]', '', 'g') like '%' || p.cedula || '%'
-           or regexp_replace(coalesce(t.datos::text, ''), '[^0-9]', '', 'g') like '%' || p.cedula || '%')
+           or regexp_replace(coalesce(t.datos::text, ''), '[^0-9]', '', 'g') like '%' || p.cedula || '%'
+           or regexp_replace(coalesce(d.datos::text, ''), '[^0-9]', '', 'g') like '%' || p.cedula || '%')
       and (p.numero_acta is null or t.numero_acta = p.numero_acta)
       and (p.funcionario is null or t.owner_usuario ilike '%' || p.funcionario || '%')
       and (p.origen is null or (p.origen = 'archivo' and t.legacy is true)
            or (p.origen = 'sistema' and t.legacy is false))
       and (p.texto is null or concat_ws(' ', t.tipo, t.titular, t.cedula_titular,
-            t.numero_acta, t.ano::text, t.owner_usuario, t.estado, t.datos::text)
+            t.numero_acta, t.ano::text, t.owner_usuario, t.estado, t.datos::text, d.datos::text)
             ilike '%' || p.texto || '%')
   )
   select jsonb_build_object(
@@ -117,7 +121,7 @@ as $$
       select jsonb_agg(to_jsonb(x))
       from (
         select id, tipo, titular, cedula_titular, numero_acta, ano, fecha,
-               legacy, owner_usuario, estado, datos
+               legacy, owner_usuario, estado, datos, detalle_historico
         from filtrados
         order by fecha desc nulls last, created_at desc
         limit (select limite from parametros)

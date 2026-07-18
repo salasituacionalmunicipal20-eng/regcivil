@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784320713875";
+const RC_BUILD = "1784336033344";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -986,40 +986,75 @@ async function vRegistros() {
       <input id="rBuscar" placeholder="Buscar por nombre, cédula, N° acta…" style="min-width:240px">
       <select id="rTipo"><option value="">Todos los tipos</option>${opcionesTipos()}<option value="reporte">Reportes de oficina</option></select>
       <select id="rOrigen"><option value="">Todo el origen</option><option value="nuevo">Registrados en el sistema</option><option value="archivo">Actas del archivo (importadas)</option></select>
-    </div><div id="rTabla"><div class="spin"></div></div></div>`;
+      <input id="rActa" inputmode="numeric" placeholder="N° de acta exacto" style="max-width:170px">
+      <input id="rAno" inputmode="numeric" maxlength="4" placeholder="Año" style="max-width:110px">
+    </div>
+    <details id="rAvanzados" style="margin:12px 0 16px"><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Filtros avanzados</summary>
+      <div class="filtros" style="margin-top:12px">
+        <label style="font-size:12px;color:#475569">Desde <input id="rDesde" type="date"></label>
+        <label style="font-size:12px;color:#475569">Hasta <input id="rHasta" type="date"></label>
+        <input id="rFuncionario" placeholder="Funcionario o usuario">
+        <select id="rNumeracion"><option value="">Con y sin número</option><option value="con">Solo con N° de acta</option><option value="sin">Solo sin N° de acta</option></select>
+        <select id="rOrden"><option value="fecha_desc">Fecha: más recientes</option><option value="fecha_asc">Fecha: más antiguas</option><option value="acta_asc">N° de acta: menor a mayor</option><option value="acta_desc">N° de acta: mayor a menor</option><option value="carga_desc">Carga: más recientes</option><option value="carga_asc">Carga: más antiguas</option></select>
+        <select id="rTamano"><option value="50">50 por página</option><option value="100" selected>100 por página</option><option value="250">250 por página</option><option value="500">500 por página</option></select>
+        <button class="btn o sm" id="rLimpiar" type="button">Limpiar filtros</button>
+      </div>
+    </details><div id="rTabla"><div class="spin"></div></div></div>`;
   let pagina = 1, espera = null, solicitud = 0;
   const cargar = async () => {
     const actual = ++solicitud;
     $("rTabla").innerHTML = `<div class="spin"></div>`;
     const q = limpiarBusqueda($("rBuscar").value), ft = $("rTipo").value, fo = $("rOrigen").value;
+    const acta = limpiarBusqueda($("rActa").value), ano = limpiarBusqueda($("rAno").value);
+    const desdeFecha = $("rDesde").value, hastaFecha = $("rHasta").value;
+    const funcionario = limpiarBusqueda($("rFuncionario").value), numeracion = $("rNumeracion").value;
+    const orden = $("rOrden").value, tamanoPagina = Number($("rTamano").value) || 100;
     let consulta = sb.from("rc_tramites")
-      .select("id,tipo,titular,cedula_titular,numero_acta,ano,legacy,owner,owner_usuario,pdf_path,created_at", { count: "exact" })
-      .order("created_at", { ascending: false });
+      .select("id,tipo,titular,cedula_titular,numero_acta,ano,fecha,legacy,owner,owner_usuario,pdf_path,created_at", { count: "exact" });
     if (ft) consulta = consulta.eq("tipo", ft);
     if (fo) consulta = consulta.eq("legacy", fo === "archivo");
+    if (acta) consulta = consulta.eq("numero_acta", acta);
+    if (/^\d{4}$/.test(ano)) consulta = consulta.eq("ano", Number(ano));
+    if (desdeFecha) consulta = consulta.gte("fecha", desdeFecha);
+    if (hastaFecha) consulta = consulta.lte("fecha", hastaFecha);
+    if (funcionario) consulta = consulta.ilike("owner_usuario", `%${funcionario}%`);
+    if (numeracion === "sin") consulta = consulta.or("numero_acta.is.null,numero_acta.eq.");
+    if (numeracion === "con") consulta = consulta.not("numero_acta", "is", null).neq("numero_acta", "");
     if (q) {
       const filtros = [`titular.ilike.%${q}%`, `cedula_titular.ilike.%${q}%`];
       if (/^\d+$/.test(q)) filtros.push(`numero_acta.eq.${q}`);
       consulta = consulta.or(filtros.join(","));
     }
-    const desde = (pagina - 1) * TAMANO_PAGINA;
-    const { data, count, error } = await consulta.range(desde, desde + TAMANO_PAGINA - 1);
+    if (orden === "fecha_asc") consulta = consulta.order("fecha", { ascending: true, nullsFirst: false });
+    else if (orden === "acta_asc") consulta = consulta.order("numero_acta", { ascending: true, nullsFirst: false }).order("ano", { ascending: true });
+    else if (orden === "acta_desc") consulta = consulta.order("numero_acta", { ascending: false, nullsFirst: false }).order("ano", { ascending: false });
+    else if (orden === "carga_asc") consulta = consulta.order("created_at", { ascending: true });
+    else if (orden === "carga_desc") consulta = consulta.order("created_at", { ascending: false });
+    else consulta = consulta.order("fecha", { ascending: false, nullsFirst: false });
+    const desde = (pagina - 1) * tamanoPagina;
+    const { data, count, error } = await consulta.range(desde, desde + tamanoPagina - 1);
     if (actual !== solicitud) return;
     if (error) { $("rTabla").innerHTML = `<div class="empty">No se pudieron cargar los registros. ${esc(error.message)}</div>`; return; }
-    const lista = data || [], total = count || 0, paginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA));
+    const lista = data || [], total = count || 0, paginas = Math.max(1, Math.ceil(total / tamanoPagina));
+    if (pagina > paginas) { pagina = paginas; cargar(); return; }
     if (!lista.length) { $("rTabla").innerHTML = `<div class="empty">Sin resultados. Usa <b>Nuevo trámite</b> para registrar uno.</div>`; return; }
-    $("rTabla").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;color:#64748b;font-size:12.5px;margin-bottom:8px"><span>${total.toLocaleString("es-VE")} registro(s)</span><span>Página ${pagina.toLocaleString("es-VE")} de ${paginas.toLocaleString("es-VE")}</span></div><div style="overflow:auto"><table><thead><tr><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N° / Año</th><th>Origen</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
-      <td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td>
+    $("rTabla").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;color:#64748b;font-size:12.5px;margin-bottom:8px"><span>${total.toLocaleString("es-VE")} registro(s)</span><span>Página ${pagina.toLocaleString("es-VE")} de ${paginas.toLocaleString("es-VE")}</span></div><div style="overflow:auto"><table><thead><tr><th>Fecha</th><th>Trámite</th><th>Titular</th><th>Cédula</th><th>N° / Año</th><th>Funcionario</th><th>Origen</th><th></th></tr></thead><tbody>${lista.map(r => `<tr>
+      <td>${fechaLegible(r.fecha)}</td><td><b>${esc(tipoLabel(r.tipo))}</b></td><td>${esc(r.titular || "—")}</td><td>${esc(r.cedula_titular || "—")}</td>
       <td>${r.numero_acta ? esc(r.numero_acta) + (r.ano ? " / " + r.ano : "") : "—"}</td>
-      <td>${r.legacy ? '<span class="badge leg">Archivo</span>' : `<span class="badge ${r.owner === USER.id ? "mine" : "a"}">${esc(r.owner_usuario || "—")}</span>`}</td>
+      <td>${esc(r.owner_usuario || "—")}</td><td>${r.legacy ? '<span class="badge leg">Archivo</span>' : '<span class="badge a">Sistema</span>'}</td>
       <td><button class="btn o sm" data-ver="${r.id}">Ver</button></td></tr>`).join("")}</tbody></table></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn o sm" id="rPrev" ${pagina <= 1 ? "disabled" : ""}>← Anterior</button><button class="btn o sm" id="rNext" ${pagina >= paginas ? "disabled" : ""}>Siguiente →</button></div>`;
     $("rTabla").querySelectorAll("[data-ver]").forEach(b => b.onclick = () => go("ver/" + b.dataset.ver));
     $("rPrev").onclick = () => { if (pagina > 1) { pagina--; cargar(); } };
     $("rNext").onclick = () => { if (pagina < paginas) { pagina++; cargar(); } };
   };
-  $("rBuscar").oninput = () => { clearTimeout(espera); espera = setTimeout(() => { pagina = 1; cargar(); }, 300); };
-  $("rTipo").onchange = $("rOrigen").onchange = () => { pagina = 1; cargar(); };
+  ["rBuscar", "rActa", "rAno", "rFuncionario"].forEach(id => $(id).oninput = () => { clearTimeout(espera); espera = setTimeout(() => { pagina = 1; cargar(); }, 300); });
+  ["rTipo", "rOrigen", "rDesde", "rHasta", "rNumeracion", "rOrden", "rTamano"].forEach(id => $(id).onchange = () => { pagina = 1; cargar(); });
+  $("rLimpiar").onclick = () => {
+    ["rBuscar", "rActa", "rAno", "rDesde", "rHasta", "rFuncionario"].forEach(id => $(id).value = "");
+    ["rTipo", "rOrigen", "rNumeracion"].forEach(id => $(id).value = "");
+    $("rOrden").value = "fecha_desc"; $("rTamano").value = "100"; pagina = 1; cargar();
+  };
   cargar();
 }
 
@@ -1105,10 +1140,28 @@ function bloqueDatosOriginales(r) {
 }
 
 /* ---- Ver / editar / eliminar ---- */
+async function cargarDetalleHistorico(r) {
+  if (!r || !r.legacy_source_id) return r;
+  const { data: enlace } = await sb.from("rc_tramites_detalle_links")
+    .select("act_key,confianza").eq("legacy_source_id", r.legacy_source_id).maybeSingle();
+  if (!enlace) return r;
+  const { data: detalle } = await sb.from("rc_detalles_historicos")
+    .select("act_key,fuente,datos").eq("act_key", enlace.act_key).maybeSingle();
+  if (!detalle) return r;
+  const datos = { ...(r.datos || {}) }, legacy = { ...(datos._legacy || {}) };
+  legacy.respaldo_2026_02_08 = detalle.datos;
+  legacy.respaldo_fuente = detalle.fuente;
+  legacy.respaldo_clave_acta = detalle.act_key;
+  legacy.respaldo_confianza = enlace.confianza;
+  datos._legacy = legacy;
+  r.datos = datos;
+  return r;
+}
 async function vVer(id) {
   $("view").innerHTML = `<div class="spin"></div>`;
   const { data: r } = await sb.from("rc_tramites").select("*").eq("id", id).single();
   if (!r) { $("view").innerHTML = `<div class="empty">Registro no encontrado o sin acceso.</div>`; return; }
+  await cargarDetalleHistorico(r);
   const cfg = TRAMITES[r.tipo];
   const dVista = datosCompletosRegistro(r);
   const puedeEditar = (r.owner === USER.id || esAdmin()) && r.tipo !== "acta_legacy" && tramiteActivo(r.tipo);
@@ -1342,6 +1395,126 @@ const ALIAS_CAMPOS_HISTORICOS = {
   expensa: { cedula: ["cedula_expo"], cedula_t: ["cedula_tutor"] },
   viudez: { cedula: ["cedula_v"], cedula_f: ["cedula_dif"], fecha_mat: ["fecha_matri"], viudo_desde: ["fecha_v"] },
 };
+function completarDesdeRespaldo(r, base) {
+  const legado = base._legacy || {}, respaldo = legado.respaldo_2026_02_08;
+  if (!respaldo || typeof respaldo !== "object") return base;
+  const tablas = respaldo.tables || {}, personas = respaldo.people || {}, reportes = respaldo.reportes_php || {};
+  const primera = nombre => Array.isArray(tablas[nombre]) && tablas[nombre].length ? tablas[nombre][0] : null;
+  const poner = (campo, valor) => {
+    if ((base[campo] == null || base[campo] === "") && valor != null && valor !== "" && valor !== "0000-00-00") base[campo] = valor;
+  };
+  const numeroCedula = valor => String(valor || "").replace(/\D/g, "").replace(/^0+/, "");
+  const persona = cedula => personas[numeroCedula(cedula)] || null;
+  const ponerPersona = (p, campos) => {
+    if (!p) return;
+    poner(campos.nombre, p.nombres); poner(campos.fecha, p.fecha_nacimiento);
+    poner(campos.nacionalidad, p.nacionalidad); poner(campos.estadoCivil, p.estado_civil);
+    poner(campos.profesion, p.profesion); poner(campos.direccion, p.direccion);
+    poner(campos.genero, p.sexo); poner(campos.lugar, p.lugar_nac || p.origen);
+  };
+  const testigo = (cedula, prefijo) => {
+    poner(prefijo + "_cedula", cedula);
+    const p = persona(cedula);
+    poner(prefijo + "_nombre", p && p.nombres); poner(prefijo + "_profesion", p && p.profesion);
+    poner(prefijo + "_nacionalidad", p && p.nacionalidad); poner(prefijo + "_direccion", p && p.direccion);
+  };
+
+  if (r.tipo === "matrimonio") {
+    const matrimonios = Array.isArray(tablas.matrimonios) ? tablas.matrimonios : [];
+    const cedulaBase = numeroCedula(base.cedula_a || r.cedula_titular);
+    const m = matrimonios.find(fila => cedulaBase && [fila.cedula_novio, fila.cedula_novia].some(c => numeroCedula(c) === cedulaBase)) || (matrimonios.length === 1 ? matrimonios[0] : {});
+    poner("tipo_acta", m.tipo); poner("lugar_acto", m.lugar_acto); poner("fecha_acto", m.fecha_acto);
+    poner("hora_acto", m.hora_acto); poner("datos_exp", m.datos_exp); poner("observaciones", m.observaciones);
+    poner("cedula_a", m.cedula_novio); poner("cedula_b", m.cedula_novia);
+    ponerPersona(persona(m.cedula_novio), { nombre: "nombres_a", fecha: "fecha_nac_a", nacionalidad: "nacionalidad_a", estadoCivil: "estado_civil_a", profesion: "profesion_a", direccion: "direccion_a", genero: "genero_a", lugar: "municipio_nac_a" });
+    ponerPersona(persona(m.cedula_novia), { nombre: "nombres_b", fecha: "fecha_nac_b", nacionalidad: "nacionalidad_b", estadoCivil: "estado_civil_b", profesion: "profesion_b", direccion: "direccion_b", genero: "genero_b", lugar: "municipio_nac_b" });
+    const padresCompatibles = (tablas.padres_mat || []).filter(fila => !m.tipo || !fila.tipo || String(fila.tipo).toLowerCase() === String(m.tipo).toLowerCase());
+    const padres = padresCompatibles.length === 1 ? padresCompatibles[0] : {};
+    const ponerFamiliar = (valor, prefijo) => {
+      const texto = String(valor || "").trim(); if (!texto) return;
+      if (/^[VE]?\s*[-.]?\s*\d[\d.\s-]*$/i.test(texto)) poner(prefijo + "_cedula", texto);
+      else poner(prefijo + "_nombres", texto);
+    };
+    ponerFamiliar(padres.padre_novio, "padre_a"); ponerFamiliar(padres.madre_novio, "madre_a");
+    ponerFamiliar(padres.padre_novia, "padre_b"); ponerFamiliar(padres.madre_novia, "madre_b");
+    const ts = primera("testigos") || {}; testigo(ts.cedula_testigo, "t1"); testigo(ts.cedula_testigo_2, "t2");
+    const cap = primera("capitulaciones") || {};
+    poner("capi_tiene", Object.keys(cap).length ? "Sí" : "No"); poner("capi_datos", cap.datos_reg);
+    poner("capi_numero", cap.numero_capi); poner("capi_fecha", cap.fecha_capi);
+    const apo = primera("apoderados") || {};
+    poner("apo_cedula", apo.cedula_apo); poner("apo_nombres", apo.nombres_apo || (persona(apo.cedula_apo) || {}).nombres);
+    poner("apo_poder", apo.datos_notaria); poner("apo_numero", apo.numero_apo); poner("apo_fecha", apo.fecha_apo);
+    if (!Array.isArray(base.hijos) || !base.hijos.length) base.hijos = (tablas.hijos_mat || []).map(h => ({ nombres: h.nombres_hijo, documento: h.documento_hijo, edad: h.edad, acta: h.datos }));
+    const reporte = reportes.matrimonio || {};
+    if (reporte.esposo) base.nombres_a = reporte.esposo;
+    if (reporte.esposa) base.nombres_b = reporte.esposa;
+    if (reporte.fecha_acto && reporte.fecha_acto !== "0000-00-00") base.fecha_acto = reporte.fecha_acto;
+  }
+
+  if (r.tipo === "nacimiento") {
+    const n = primera("nacimientos") || {}, presentado = primera("datos_presentado") || {};
+    poner("tipo_acta", n.tipo); poner("cedula_m", n.cedula_madre); poner("cedula_p", n.cedula_padre);
+    testigo(n.cedula_testigo_1, "t1"); testigo(n.cedula_testigo_2, "t2");
+    poner("nombres_n", presentado.nombres_pre); poner("fecha_nac", presentado.fecha_nac_pre); poner("genero", presentado.sexo_pre);
+    poner("hora_nac", presentado.hora_nac_pre); poner("estado_nac", presentado.estado_nac_pre); poner("municipio_nac", presentado.lugar_nac_pre);
+    poner("certificado", presentado.certificado_pre); poner("fecha_cert", presentado.fecha_cert_pre);
+    poner("centro_salud", presentado.centro_salud_pre); poner("autoridad", presentado.autoridad_pre); poner("mpps", presentado.mpps_pre);
+    poner("observaciones", presentado.observaciones_nac);
+    ponerPersona(persona(n.cedula_madre), { nombre: "nombres_m", fecha: "fecha_nac_m", nacionalidad: "nacionalidad_m", estadoCivil: "estado_civil_m", profesion: "profesion_madre", direccion: "direccion_madre", genero: "genero_m", lugar: "lugar_nac_m" });
+    ponerPersona(persona(n.cedula_padre), { nombre: "nombres_p", fecha: "fecha_nac_p", nacionalidad: "nacionalidad_p", estadoCivil: "estado_civil_p", profesion: "profesion_padre", direccion: "direccion_padre", genero: "genero_p", lugar: "lugar_nac_p" });
+    const mand = primera("mand_nac") || {}; poner("mand_nombres", mand.nombres_mand); poner("mand_cedula", mand.cedula_mand);
+    poner("mand_edad", mand.edad_mand); poner("mand_profesion", mand.profesion_mand); poner("mand_nacionalidad", mand.nacionalidad_mand);
+    poner("mand_comunidad", mand.comunidad_mand); poner("mand_notaria", mand.datos_not_mand); poner("mand_numero", mand.n_mand); poner("mand_fecha", mand.fecha_mand);
+    const medida = primera("medida_nac") || {}; poner("consejo", medida.consejo); poner("medida", medida.n_medida);
+    poner("consejero", medida.consejero_medida); poner("medida_fecha", medida.fecha_medida); poner("extracto_medida", medida.extracto_medida);
+    const sentencia = primera("sentencia_nac") || {}; poner("tribunal", sentencia.tribunal); poner("sentencia", sentencia.n_sent);
+    poner("juez", sentencia.juez_sent); poner("sentencia_fecha", sentencia.fecha_sent); poner("extracto_sentencia", sentencia.extracto_sent);
+  }
+
+  if (r.tipo === "defuncion") {
+    const f = primera("defunciones_nu") || primera("defunciones_n") || primera("defunciones") || {};
+    poner("cedula_f", f.cedula_difunto); poner("con_cedula", f.cedula_con); poner("dec_cedula", f.cedula_exponente);
+    poner("fecha_def", f.fecha_def); poner("hora_def", f.hora_def); poner("parroquia_def", f.parroquia_def);
+    poner("municipio_def", f.municipio_def); poner("estado_def", f.estado_def); poner("causas", f.causas_def);
+    poner("certificado_def", f.n_cert); poner("fecha_cert_def", f.fecha_cert); poner("registro_sanitario", f.reg_sanitario);
+    poner("autoridad_cert", f.autoridad_cert); poner("autoridad_cedula", f.ced_autoridad); poner("dependencia", f.dependencia_cert);
+    poner("genero", f.sexo_dif); poner("edad_f", f.edad_dif); poner("observaciones", f.observaciones);
+    testigo(f.cedula_t1, "t1"); testigo(f.cedula_t2, "t2");
+    ponerPersona(persona(f.cedula_difunto), { nombre: "nombres_f", fecha: "fecha_nac_f", nacionalidad: "nacionalidad_f", estadoCivil: "estado_civil_f", profesion: "profesion_f", direccion: "direccion_f", genero: "genero", lugar: "lugar_nac_f" });
+    ponerPersona(persona(f.cedula_exponente), { nombre: "dec_nombres", fecha: "dec_fecha_nac", nacionalidad: "dec_nacionalidad", estadoCivil: "dec_estado_civil", profesion: "dec_profesion", direccion: "dec_direccion", genero: "dec_genero", lugar: "dec_lugar_nac" });
+    const padres = primera("padres_def") || {}; poner("padre_nombres", padres.padre); poner("padre_cedula", padres.cedula_padre);
+    poner("padre_profesion", padres.profesion_padre); poner("padre_lugar_nac", padres.lugar_nac_padre);
+    poner("madre_nombres", padres.madre); poner("madre_cedula", padres.cedula_madre);
+    poner("madre_profesion", padres.profesion_madre); poner("madre_lugar_nac", padres.lugar_nac_madre);
+    if (!Array.isArray(base.descendientes) || !base.descendientes.length) base.descendientes = (tablas.hijos_def || []).map(h => ({ nombres: h.nombres_hijo, cedula: h.documento_hijo, edad: h.edad, vive: h.vive }));
+  }
+
+  if (r.tipo === "union_estable") {
+    const u = primera("concubinato") || {};
+    poner("cedula_a", u.cedula_concubino); poner("cedula_b", u.cedula_concubina); poner("tiempo", u.tiempo_convivencia);
+    poner("hijos_texto", u.hijos); poner("fecha_acto", u.fecha_acto); testigo(u.cedula_testigo_1, "t1"); testigo(u.cedula_testigo_2, "t2");
+    ponerPersona(persona(u.cedula_concubino), { nombre: "nombres_a", fecha: "fecha_nac_a", nacionalidad: "nacionalidad_a", estadoCivil: "estado_civil_a", profesion: "profesion_a", direccion: "direccion_a", genero: "genero_a", lugar: "lugar_nac_a" });
+    ponerPersona(persona(u.cedula_concubina), { nombre: "nombres_b", fecha: "fecha_nac_b", nacionalidad: "nacionalidad_b", estadoCivil: "estado_civil_b", profesion: "profesion_b", direccion: "direccion_b", genero: "genero_b", lugar: "lugar_nac_b" });
+  }
+
+  if (r.tipo === "disolucion") {
+    const u = primera("dis_c") || {}; poner("tipo_dis", u.tipo); poner("cedula_a", u.cedula_a); poner("cedula_b", u.cedula_b);
+    poner("tiempo", u.tiempo_c); poner("acta_original", u.acta_c); poner("fecha_original", u.fecha_acta_c); poner("oficina_original", u.oficina);
+    testigo(u.cedula_t1, "t1"); testigo(u.cedula_t2, "t2");
+    ponerPersona(persona(u.cedula_a), { nombre: "nombres_a", fecha: "fecha_nac_a", nacionalidad: "nacionalidad_a", estadoCivil: "estado_civil_a", profesion: "profesion_a", direccion: "direccion_a", genero: "genero_a", lugar: "lugar_nac_a" });
+    ponerPersona(persona(u.cedula_b), { nombre: "nombres_b", fecha: "fecha_nac_b", nacionalidad: "nacionalidad_b", estadoCivil: "estado_civil_b", profesion: "profesion_b", direccion: "direccion_b", genero: "genero_b", lugar: "lugar_nac_b" });
+  }
+
+  if (r.tipo === "naturalizacion") {
+    const n = primera("naturalizacion") || {}; poner("tipo", n.tipo); poner("fecha_acto", n.fecha_acta);
+    poner("cedula", n.cedula_soli); poner("con_cedula", n.cedula_con); poner("hijos", n.hijos);
+    poner("condicion", n.condicion_ent); poner("tiempo_res", n.tiempo_res); poner("hijo_menor", n.hijo_menor);
+    poner("lugar_nac_h", n.lugar_nac_h); poner("fecha_nac_h", n.fecha_nac_h);
+    ponerPersona(persona(n.cedula_soli), { nombre: "nombres", fecha: "fecha_nac", nacionalidad: "nacionalidad", estadoCivil: "estado_civil", profesion: "profesion", direccion: "residencia", genero: "sexo", lugar: "lugar_nac" });
+    ponerPersona(persona(n.cedula_con), { nombre: "con_nombres", fecha: "con_fecha_nac", nacionalidad: "con_nacionalidad", estadoCivil: "con_estado_civil", profesion: "con_profesion", direccion: "con_residencia", genero: "con_sexo", lugar: "con_lugar_nac" });
+  }
+  return base;
+}
 function datosCompletosRegistro(r) {
   const base = { ...((r && r.datos) || {}) };
   const legacy = base._legacy || {};
@@ -1350,6 +1523,7 @@ function datosCompletosRegistro(r) {
     if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
     Object.entries(obj).forEach(([k, v]) => { if ((base[k] == null || base[k] === "") && v != null && v !== "") base[k] = v; });
   });
+  completarDesdeRespaldo(r, base);
   const aliases = ALIAS_CAMPOS_HISTORICOS[(r && r.tipo) || ""] || {};
   Object.entries(aliases).forEach(([destino, origenes]) => {
     if (base[destino] != null && base[destino] !== "") return;
@@ -1390,7 +1564,9 @@ function firmaParaRegistro(r) {
   if (!r || !r.legacy) return { ...FIRMA };
   const d = (r && r.datos) || {}, legacy = d._legacy || {};
   const guardada = d.firma_historica || legacy.firma_historica || {};
-  const autoridad = String(guardada.nombre || legacy.autoridad || "Autoridad registrada en el sistema anterior").trim();
+  const respaldo = legacy.respaldo_2026_02_08 || {}, tablas = respaldo.tables || {};
+  const filaAutoridad = Object.values(tablas).flatMap(filas => Array.isArray(filas) ? filas : []).find(fila => fila && String(fila.autoridad || "").trim());
+  const autoridad = String(guardada.nombre || legacy.autoridad || (filaAutoridad && filaAutoridad.autoridad) || "Autoridad registrada en el sistema anterior").trim();
   const conocida = /emperatriz.*garc[ií]a.*ponte/i.test(autoridad);
   const union2019 = r.tipo === "union_estable" && conocida;
   return {
@@ -1542,7 +1718,8 @@ function generarActaPDF(r) {
   doc.setFont("times", "normal"); doc.setFontSize(10); doc.setTextColor(0);
   ["República Bolivariana de Venezuela", "Consejo Nacional Electoral", "Comisión de Registro Civil y Electoral", "Estado Bolivariano de Miranda", "Municipio Cristóbal Rojas", "Parroquia Charallave"].forEach((t, i) => doc.text(t, MX, y + i * 4.6));
   doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.text(String(r.numero_acta || ""), RX, y, { align: "right" });
-  const fp = (r.fecha || "").split("-");
+  const fechaEncabezado = d.fecha_acto && d.fecha_acto !== "0000-00-00" ? d.fecha_acto : r.fecha;
+  const fp = (fechaEncabezado || "").split("-");
   doc.setFont("helvetica", "normal"); doc.setFontSize(9);
   const rl = RX - 34, ry = y + 8;
   doc.text("ACTA N°  " + (r.numero_acta || ""), rl, ry);
