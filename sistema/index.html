@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784742637257";
+const RC_BUILD = "1784751661361";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -1673,7 +1673,8 @@ function fechaLarga(d) {
   if (typeof d === "string") { const p = d.split("-"); if (p.length === 3) return `${+p[2]} de ${MESES[+p[1] - 1] || ""} de ${p[0]}`; return d; }
   return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
 }
-function nuevoDoc() { return new jsPDF({ unit: "mm", format: "legal", orientation: "portrait" }); }
+let PDF_S = 1; // escala de compactacion de las actas (1 = tamaño normal); solo se reduce si un acta se pasa de 2 hojas
+function nuevoDoc() { return new jsPDF({ unit: "mm", format: [216, 330], orientation: "portrait" }); } // oficio (216 x 330 mm)
 function tricolor(doc) { const W = doc.internal.pageSize.getWidth(); doc.setFillColor(244, 194, 13); doc.rect(0, 0, W / 3, 3, "F"); doc.setFillColor(10, 108, 176); doc.rect(W / 3, 0, W / 3, 3, "F"); doc.setFillColor(210, 21, 52); doc.rect(2 * W / 3, 0, W / 3, 3, "F"); }
 function firma(doc, y, firmaDoc = FIRMA) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
@@ -1687,7 +1688,7 @@ function firma(doc, y, firmaDoc = FIRMA) {
 }
 // Dibuja una grilla de celdas enmarcadas (etiqueta chica arriba, valor abajo), rellenando cada fila de borde a borde segun los anchos (w 1..12). Devuelve la nueva y.
 function drawGrid(doc, fields, x0, y, W) {
-  const H = doc.internal.pageSize.getHeight(), pad = 1.6;
+  const H = doc.internal.pageSize.getHeight(), S = PDF_S, pad = 1.6 * S;
   let i = 0;
   while (i < fields.length) {
     const row = []; let wsum = 0;
@@ -1697,23 +1698,23 @@ function drawGrid(doc, fields, x0, y, W) {
       row.push({ l: fields[i].l, v: fields[i].v, w }); wsum += w; i++;
       if (wsum >= 12) break;
     }
-    doc.setFontSize(9);
-    let rowH = 8.5;
+    let rowH = 8.5 * S;
     row.forEach(c => {
       const cw = (c.w / wsum) * W - 2 * pad;
+      doc.setFont("times", "normal"); doc.setFontSize(9 * S);
       c._v = doc.splitTextToSize(String(c.v == null ? "" : c.v), Math.max(cw, 8));
-      const h = 4 + c._v.length * 3.7 + 1.6;
+      const h = (4 + c._v.length * 3.7 + 1.6) * S;
       if (h > rowH) rowH = h;
     });
-    if (y + rowH > H - 40) { doc.addPage(); y = 18; }
+    if (y + rowH > H - 12) { doc.addPage(); y = 16; }
     let cx = x0;
     row.forEach(c => {
       const cw = (c.w / wsum) * W;
       doc.setDrawColor(150); doc.setLineWidth(0.2); doc.rect(cx, y, cw, rowH);
-      doc.setFont("times", "bold"); doc.setFontSize(6.6); doc.setTextColor(95);
-      doc.text(String(c.l).toUpperCase(), cx + pad, y + 3);
-      doc.setFont("times", "normal"); doc.setFontSize(9); doc.setTextColor(0);
-      doc.text(c._v, cx + pad, y + 6.4);
+      doc.setFont("times", "bold"); doc.setFontSize(6.6 * S); doc.setTextColor(95);
+      doc.text(String(c.l).toUpperCase(), cx + pad, y + 3 * S);
+      doc.setFont("times", "normal"); doc.setFontSize(9 * S); doc.setTextColor(0);
+      doc.text(c._v, cx + pad, y + 6.4 * S);
       cx += cw;
     });
     y += rowH;
@@ -1740,7 +1741,7 @@ function bloqueHistoricoPDF(doc, r, y, x0, W) {
   const campos = camposHistoricosPDF(r);
   if (!campos.length) return y;
   const H = doc.internal.pageSize.getHeight();
-  if (y + 17 > H - 40) { doc.addPage(); y = 18; }
+  if (y + 17 > H - 12) { doc.addPage(); y = 16; }
   doc.setFillColor(10, 35, 81); doc.setDrawColor(10, 35, 81); doc.setLineWidth(0.2); doc.rect(x0, y, W, 6.2, "FD");
   doc.setFont("helvetica", "bold"); doc.setFontSize(8.6); doc.setTextColor(255);
   doc.text("INFORMACIÓN COMPLETA RECUPERADA DEL SISTEMA ANTERIOR", x0 + 2, y + 4.2);
@@ -1755,51 +1756,61 @@ function bloqueHistoricoPDF(doc, r, y, x0, W) {
   }));
   return drawGrid(doc, filas, x0, y, W) + 2.5;
 }
-function bloqueFirmas(doc, y, firmaDoc = FIRMA, espacioNotas = 0) {
-  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15;
-  // Reserva tambien el espacio de las notas marginales para que firma + notas queden en la MISMA pagina.
-  if (y + 73 + espacioNotas > H - 16) { doc.addPage(); y = 22; } else y += 12;
+function bloqueFirmas(doc, y, firmaDoc = FIRMA) {
+  const W = doc.internal.pageSize.getWidth(), MX = 15, RX = W - 15, S = PDF_S;
+  y += 12 * S;
   const xL = MX + (RX - MX) * 0.25, xR = MX + (RX - MX) * 0.75;
   doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.3);
   const par = (yy, a, b) => {
     doc.line(xL - 28, yy, xL + 28, yy); doc.line(xR - 28, yy, xR + 28, yy);
-    doc.setFont("times", "normal"); doc.setFontSize(8.5); doc.setTextColor(0);
-    doc.text(a, xL, yy + 4, { align: "center" }); doc.text(b, xR, yy + 4, { align: "center" });
+    doc.setFont("times", "normal"); doc.setFontSize(8.5 * S); doc.setTextColor(0);
+    doc.text(a, xL, yy + 4 * S, { align: "center" }); doc.text(b, xR, yy + 4 * S, { align: "center" });
   };
   par(y, "Firma del Declarante", "Firma del Declarante");
-  doc.setFontSize(7); doc.setTextColor(90); doc.text("Impresión Dactilar", xL + 31, y + 2); doc.text("Impresión Dactilar", xR + 31, y + 2);
-  y += 18; par(y, "Firma del Registrador(a)", "Sello Húmedo");
-  y += 18; par(y, "Firma del Testigo", "Firma del Testigo");
-  y += 13;
+  doc.setFontSize(7 * S); doc.setTextColor(90); doc.text("Impresión Dactilar", xL + 31, y + 2 * S); doc.text("Impresión Dactilar", xR + 31, y + 2 * S);
+  y += 18 * S; par(y, "Firma del Registrador(a)", "Sello Húmedo");
+  y += 18 * S; par(y, "Firma del Testigo", "Firma del Testigo");
+  y += 13 * S;
   doc.setDrawColor(0); doc.line(W / 2 - 34, y, W / 2 + 34, y);
-  doc.setFont("times", "bold"); doc.setFontSize(9.5); doc.setTextColor(0); doc.text(firmaDoc.nombre || "", W / 2, y + 4.5, { align: "center" });
-  doc.setFont("times", "normal"); doc.setFontSize(8);
-  doc.text("Registradora Civil del Municipio Cristóbal Rojas" + (firmaDoc.cedula ? " · C.I. " + firmaDoc.cedula : ""), W / 2, y + 8.5, { align: "center" });
-  doc.text([firmaDoc.resolucion ? "Resolución N° " + firmaDoc.resolucion : "", firmaDoc.gaceta ? "Gaceta " + firmaDoc.gaceta : ""].filter(Boolean).join(" · "), W / 2, y + 12, { align: "center" });
-  return y + 16;
+  doc.setFont("times", "bold"); doc.setFontSize(9.5 * S); doc.setTextColor(0); doc.text(firmaDoc.nombre || "", W / 2, y + 4.5 * S, { align: "center" });
+  doc.setFont("times", "normal"); doc.setFontSize(8 * S);
+  doc.text("Registradora Civil del Municipio Cristóbal Rojas" + (firmaDoc.cedula ? " · C.I. " + firmaDoc.cedula : ""), W / 2, y + 8.5 * S, { align: "center" });
+  doc.text([firmaDoc.resolucion ? "Resolución N° " + firmaDoc.resolucion : "", firmaDoc.gaceta ? "Gaceta " + firmaDoc.gaceta : ""].filter(Boolean).join(" · "), W / 2, y + 12 * S, { align: "center" });
+  return y + 16 * S;
 }
 function bloqueNotasMarginales(doc, y, letraInicio) {
-  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, CW = W - 30;
-  // Sin saltos de pagina aqui: bloqueFirmas ya reservo el espacio, asi las 2 notas van SIEMPRE
-  // en la misma pagina, justo debajo de la firma.
+  const W = doc.internal.pageSize.getWidth(), MX = 15, CW = W - 30, S = PDF_S;
+  // Sin saltos de pagina aqui: el llamador ya garantizo la 2a hoja, asi firma + las 2 notas
+  // marginales quedan SIEMPRE en la misma pagina (la 2a), una debajo de la otra.
   const nota = titulo => {
-    doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5, "FD");
-    doc.setFont("times", "bold"); doc.setFontSize(8.6); doc.setTextColor(0); doc.text(titulo, MX + 2, y + 3.8);
-    y += 5.5;
-    doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 34);
-    y += 42;
+    doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5 * S, "FD");
+    doc.setFont("times", "bold"); doc.setFontSize(8.6 * S); doc.setTextColor(0); doc.text(titulo, MX + 2, y + 3.8 * S);
+    y += 5.5 * S;
+    doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 34 * S);
+    y += 42 * S;
     doc.setDrawColor(0); doc.setLineWidth(0.3); doc.line(W / 2 - 42, y, W / 2 + 42, y);
-    doc.setFont("times", "normal"); doc.setFontSize(8.5); doc.setTextColor(0);
-    doc.text("Firma del Registrador(a) Civil / Sello Húmedo", W / 2, y + 4, { align: "center" });
-    y += 11;
+    doc.setFont("times", "normal"); doc.setFontSize(8.5 * S); doc.setTextColor(0);
+    doc.text("Firma del Registrador(a) Civil / Sello Húmedo", W / 2, y + 4 * S, { align: "center" });
+    y += 11 * S;
   };
   nota(String.fromCharCode(letraInicio++) + "- Nota Marginal");
   nota(String.fromCharCode(letraInicio) + "- Nota Marginal");
   return y;
 }
 function generarActaPDF(r) {
+  // Las actas SIEMPRE salen en 2 hojas tamaño oficio. Se intenta a tamaño normal y, si el acta
+  // trae tantos datos que se pasaria de 2 paginas, se compacta la escala hasta caber en 2 —
+  // sin recortar ningun dato. Pagina 1 = datos; pagina 2 = firmas + notas marginales.
+  for (const S of [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58]) {
+    const doc = construirActa(r, S);
+    if (doc.internal.getNumberOfPages() <= 2) return doc;
+  }
+  return construirActa(r, 0.54);
+}
+function construirActa(r, S) {
+  PDF_S = S;
   const cfg = TRAMITES[r.tipo], doc = nuevoDoc(), d = datosCompletosRegistro(r), firmaDoc = firmaParaRegistro(r);
-  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15, CW = RX - MX;
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15, CW = RX - MX, BOT = H - 12;
   tricolor(doc);
   try { doc.addImage(LOGO_CNE, "JPEG", 80, 6, 42, 23); doc.addImage(SELLO, "JPEG", 132, 5, 24, 24); } catch (e) {}
   let y = 13;
@@ -1853,39 +1864,44 @@ function generarActaPDF(r) {
       if (!sec.modelos.includes(prefijo)) return;
     }
     const L = String.fromCharCode(letra); letra++;
-    if (y + 12 > H - 40) { doc.addPage(); y = 18; }
-    doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5, "FD");
-    doc.setFont("times", "bold"); doc.setFontSize(8.6); doc.setTextColor(0); doc.text(L + "- " + sec.t, MX + 2, y + 3.8);
-    y += 5.5;
+    if (y + 12 * S > BOT) { doc.addPage(); y = 16; }
+    doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5 * S, "FD");
+    doc.setFont("times", "bold"); doc.setFontSize(8.6 * S); doc.setTextColor(0); doc.text(L + "- " + sec.t, MX + 2, y + 3.8 * S);
+    y += 5.5 * S;
     if (sec.aceptacion) {
-      doc.setFont("times", "normal"); doc.setFontSize(9.5); doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.25);
-      if (y + 26 > H - 40) { doc.addPage(); y = 18; }
-      doc.text("El", MX + 3, y + 8); doc.line(MX + 3 + doc.getTextWidth("El "), y + 8.5, RX - 3, y + 8.5);
-      y += 14;
-      doc.text("Y ella", MX + 3, y + 8); doc.line(MX + 3 + doc.getTextWidth("Y ella "), y + 8.5, RX - 3, y + 8.5);
-      y += 13;
+      doc.setFont("times", "normal"); doc.setFontSize(9.5 * S); doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.25);
+      if (y + 26 * S > BOT) { doc.addPage(); y = 16; }
+      doc.text("El", MX + 3, y + 8 * S); doc.line(MX + 3 + doc.getTextWidth("El "), y + 8.5 * S, RX - 3, y + 8.5 * S);
+      y += 14 * S;
+      doc.text("Y ella", MX + 3, y + 8 * S); doc.line(MX + 3 + doc.getTextWidth("Y ella "), y + 8.5 * S, RX - 3, y + 8.5 * S);
+      y += 13 * S;
     } else if (sec.texto) {
-      doc.setFont("times", "normal"); doc.setFontSize(7.2); doc.setTextColor(0);
-      doc.splitTextToSize(sec.texto, CW - 5).forEach(ln => { if (y + 4 > H - 40) { doc.addPage(); y = 18; } doc.text(ln, MX + 2, y + 3); y += 3.1; });
-      y += 1;
+      doc.setFont("times", "normal"); doc.setFontSize(7.2 * S); doc.setTextColor(0);
+      doc.splitTextToSize(sec.texto, CW - 5).forEach(ln => { if (y + 4 * S > BOT) { doc.addPage(); y = 16; } doc.text(ln, MX + 2, y + 3 * S); y += 3.1 * S; });
+      y += 1 * S;
     } else if (sec.rep) {
       const items = Array.isArray(d[sec.rep.key]) ? d[sec.rep.key] : [];
       if (!items.length) { y = drawGrid(doc, sec.rep.campos.map(c => ({ l: c.l, v: "", w: c.w })), MX, y, CW); }
       else items.forEach((it, idx) => {
-        if (y + 5 > H - 40) { doc.addPage(); y = 18; }
-        doc.setFillColor(244, 244, 244); doc.setDrawColor(160); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 4.6, "FD");
-        doc.setFont("times", "bold"); doc.setFontSize(7.2); doc.setTextColor(70);
-        doc.text(sec.rep.singular.charAt(0).toUpperCase() + sec.rep.singular.slice(1) + " " + (idx + 1), MX + 2, y + 3.2);
-        y += 4.6;
+        if (y + 5 * S > BOT) { doc.addPage(); y = 16; }
+        doc.setFillColor(244, 244, 244); doc.setDrawColor(160); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 4.6 * S, "FD");
+        doc.setFont("times", "bold"); doc.setFontSize(7.2 * S); doc.setTextColor(70);
+        doc.text(sec.rep.singular.charAt(0).toUpperCase() + sec.rep.singular.slice(1) + " " + (idx + 1), MX + 2, y + 3.2 * S);
+        y += 4.6 * S;
         y = drawGrid(doc, sec.rep.campos.map(c => ({ l: c.l, v: it[c.n], w: c.w })), MX, y, CW);
       });
     } else {
       y = drawGrid(doc, sec.campos.map(c => ({ l: c.l, v: d[c.n], w: c.w })), MX, y, CW);
     }
-    y += 2.5;
+    y += 2.5 * S;
   });
   if (r.legacy) y = bloqueHistoricoPDF(doc, r, y, MX, CW);
-  y = bloqueFirmas(doc, y, firmaDoc, 125);
+  // Firma + las 2 notas marginales SIEMPRE en la 2a hoja -> garantiza exactamente 2 paginas.
+  // Si los datos ya llenaron la 2a hoja y no cabe el bloque, se pasa a una 3a pagina y el
+  // reintento de generarActaPDF vuelve a construir con menor escala hasta que quepa en 2.
+  if (doc.internal.getNumberOfPages() === 1) { doc.addPage(); y = 20; }
+  else if (y + 200 * S > H - 8) { doc.addPage(); y = 20; }
+  y = bloqueFirmas(doc, y, firmaDoc);
   bloqueNotasMarginales(doc, y, letra);
   return doc;
 }
