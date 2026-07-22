@@ -232,7 +232,7 @@ const sb = createClient(SUPA_URL, SUPA_ANON);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const toast = (m) => { const t = $("toast"); t.textContent = m; t.style.display = "block"; setTimeout(() => t.style.display = "none", 2600); };
-const RC_BUILD = "1784351680010";
+const RC_BUILD = "1784742637257";
 // Aviso de nueva versión: si se desplegó una versión más reciente, ofrecer recargar (evita quedarse con JS viejo en caché).
 async function chequearVersion() {
   try {
@@ -904,7 +904,7 @@ async function vForm(tipo, registro) {
     });
   });
   const hoy = new Date().toISOString().slice(0, 10);
-  const numHtml = cfg.num ? `<div class="fld w4"><label>N° de acta</label><input type="text" id="fNum" value="${esc(registro ? registro.numero_acta || "" : "")}"></div><div class="fld w4"><label>Año</label><input type="number" id="fAno" value="${registro ? registro.ano || new Date().getFullYear() : new Date().getFullYear()}"></div>` : "";
+  const numHtml = cfg.num ? `<div class="fld w4"><label>N° de acta <span style="font-weight:400;color:#64748b;font-size:11px">(automático · no editable)</span></label><input type="text" id="fNum" value="${esc(registro ? registro.numero_acta || "" : "")}" readonly title="El número se asigna automáticamente y de forma correlativa. No se puede modificar." style="background:#eef2f7;font-weight:700;cursor:not-allowed"></div><div class="fld w4"><label>Año</label><input type="number" id="fAno" value="${registro ? registro.ano || new Date().getFullYear() : new Date().getFullYear()}"></div>` : "";
   $("view").innerHTML = `<h1 class="t">${EDIT_ID ? "Editar" : "Nuevo"}: ${esc(cfg.label)}</h1><div class="sub">${esAdmin() ? "" : "Este registro quedará asociado a tu usuario."}</div>
     <div class="card"><div class="form-grid">
       ${cfg.num ? `<div class="sec-t">Numeración</div>${numHtml}<div class="fld w4"><label>Fecha</label><input type="date" id="fFecha" value="${esc(registro ? registro.fecha || hoy : hoy)}"></div>` : `<div class="fld w4" style="display:none"><input type="date" id="fFecha" value="${hoy}"></div>`}
@@ -915,6 +915,7 @@ async function vForm(tipo, registro) {
       <button class="btn o" id="fCancel">Cancelar</button>
     </div></div>`;
   if (cfg.num && !EDIT_ID) sugerirNumero(tipo);
+  if (cfg.num && !EDIT_ID && $("fAno")) $("fAno").addEventListener("change", () => sugerirNumero(tipo));
   $("fCancel").onclick = () => go(EDIT_ID ? "ver/" + EDIT_ID : "registros");
   $("fSave").onclick = () => guardar(tipo);
   engancharCNE($("view"));
@@ -944,7 +945,7 @@ function wireNaturalizacion(datos) {
 async function sugerirNumero(tipo) {
   const ano = $("fAno") ? Number($("fAno").value) : new Date().getFullYear();
   const { data, error } = await sb.rpc("rc_siguiente_numero", { p_tipo: tipo, p_ano: ano });
-  if (!error && $("fNum") && !$("fNum").value) $("fNum").value = Number(data || 1);
+  if (!error && data != null && $("fNum")) $("fNum").value = Number(data);
 }
 async function guardar(tipo) {
   const cfg = TRAMITES[tipo];
@@ -1754,9 +1755,10 @@ function bloqueHistoricoPDF(doc, r, y, x0, W) {
   }));
   return drawGrid(doc, filas, x0, y, W) + 2.5;
 }
-function bloqueFirmas(doc, y, firmaDoc = FIRMA) {
+function bloqueFirmas(doc, y, firmaDoc = FIRMA, espacioNotas = 0) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, RX = W - 15;
-  if (y + 73 > H - 16) { doc.addPage(); y = 22; } else y += 12;
+  // Reserva tambien el espacio de las notas marginales para que firma + notas queden en la MISMA pagina.
+  if (y + 73 + espacioNotas > H - 16) { doc.addPage(); y = 22; } else y += 12;
   const xL = MX + (RX - MX) * 0.25, xR = MX + (RX - MX) * 0.75;
   doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.3);
   const par = (yy, a, b) => {
@@ -1778,9 +1780,9 @@ function bloqueFirmas(doc, y, firmaDoc = FIRMA) {
 }
 function bloqueNotasMarginales(doc, y, letraInicio) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), MX = 15, CW = W - 30;
-  if (y + 118 > H - 16) { doc.addPage(); y = 18; }
+  // Sin saltos de pagina aqui: bloqueFirmas ya reservo el espacio, asi las 2 notas van SIEMPRE
+  // en la misma pagina, justo debajo de la firma.
   const nota = titulo => {
-    if (y + 59 > H - 16) { doc.addPage(); y = 18; }
     doc.setFillColor(222, 222, 222); doc.setDrawColor(140); doc.setLineWidth(0.2); doc.rect(MX, y, CW, 5.5, "FD");
     doc.setFont("times", "bold"); doc.setFontSize(8.6); doc.setTextColor(0); doc.text(titulo, MX + 2, y + 3.8);
     y += 5.5;
@@ -1883,7 +1885,7 @@ function generarActaPDF(r) {
     y += 2.5;
   });
   if (r.legacy) y = bloqueHistoricoPDF(doc, r, y, MX, CW);
-  y = bloqueFirmas(doc, y, firmaDoc);
+  y = bloqueFirmas(doc, y, firmaDoc, 125);
   bloqueNotasMarginales(doc, y, letra);
   return doc;
 }
